@@ -1,0 +1,77 @@
+{
+  "name": "presucontrol-empresarial",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema Integral de Formulación, Control y Evaluación Presupuestal Empresarial",
+  "main": "apps/desktop/dist/main.cjs",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB,DESKTOP -c blue,green,magenta \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:desktop\"",
+    "dev:api": "npm run dev --workspace @presucontrol/api",
+    "dev:web": "npm run dev --workspace @presucontrol/frontend",
+    "dev:desktop": "npm run build:desktop && wait-on tcp:4310 http-get://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 PRESUCONTROL_API_URL=http://127.0.0.1:4310 electron .",
+    "build": "npm run build:frontend && npm run build:api && npm run build:desktop",
+    "build:frontend": "npm run build --workspace @presucontrol/frontend",
+    "build:api": "npm run build --workspace @presucontrol/api",
+    "build:desktop": "npm run build --workspace @presucontrol/desktop",
+    "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/frontend/tsconfig.json --noEmit",
+    "test": "npm run build:api && node --test tests/*.test.mjs",
+    "verify": "npm run typecheck && npm test && npm run build",
+    "desktop:dist": "npm run verify && electron-builder --win portable --x64",
+    "start:api": "npm run start --workspace @presucontrol/api"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.18",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.0",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.5",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "pe.presucontrol.empresarial",
+    "productName": "PresuControl Empresarial",
+    "artifactName": "PresuControl-Empresarial-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "apps/desktop/dist/**/*",
+      "apps/frontend/dist/**/*",
+      "apps/api/dist/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/bindings/**/*",
+      "node_modules/file-uri-to-path/**/*"
+    ],
+    "npmRebuild": true,
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "PresuControl-Empresarial-${version}-x64.exe"
+    }
+  }
+}

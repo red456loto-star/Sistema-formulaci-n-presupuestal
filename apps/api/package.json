@@ -1,0 +1,17 @@
+{
+  "name": "@presucontrol/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development PRESUCONTROL_PORT=4310 tsx watch src/server.ts",
+    "build": "node build.mjs",
+    "start": "node dist/server.cjs"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "pino": "^9.7.0",
+    "zod": "^3.25.0"
+  }
+}

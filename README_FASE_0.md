@@ -1593,3 +1593,88 @@ El repositorio está en condiciones adecuadas para iniciar un desarrollo desde c
 La solución se diseñará como una aplicación empresarial de escritorio modular, con funcionamiento offline, control de versiones, importación flexible, cálculos presupuestales, análisis financiero, reportes y trazabilidad.
 
 La siguiente fase debe limitarse a construir la base técnica y la navegación, sin implementar todavía los cálculos completos del presupuesto maestro.
+
+---
+
+## 39. Precisiones aprobadas posteriores a la revisión
+
+### 39.1 Separación entre estructura organizacional y estructura presupuestal
+
+La navegación empresarial puede mostrar una ruta integrada, pero la base de datos debe manejar dos jerarquías relacionadas y no una cadena rígida única.
+
+**Estructura organizacional:**
+
+`Empresa → Sede → Centro de actividad`
+
+**Estructura presupuestal:**
+
+`Empresa → Grupo presupuestal → Elemento presupuestal → Cuenta presupuestal`
+
+La línea presupuestal será la entidad que relacione ambas estructuras mediante:
+
+`Centro + Cuenta + Ejercicio + Periodo + Versión`
+
+Esta separación permite utilizar una misma cuenta presupuestal en diferentes centros sin duplicar el catálogo contable o presupuestal. La relación `CentroCuenta` permitirá habilitar, restringir o parametrizar las cuentas disponibles para cada centro.
+
+### 39.2 Entidades transversales adicionales
+
+El modelo conceptual deberá incorporar expresamente:
+
+- `Moneda`
+- `TipoCambio`
+- `UnidadMedida`
+- `TipoPresupuesto`
+- `ReglaVariacion`
+- `ParametroFinanciero`
+- `ArchivoAdjunto`
+
+`ReglaVariacion` definirá cuándo una diferencia es favorable, desfavorable o neutra según la naturaleza de la cuenta. `ParametroFinanciero` almacenará supuestos autorizados como tasa de impuesto, WACC y otros valores necesarios para EVA y análisis financiero.
+
+### 39.3 Presupuesto original, modificado, vigente, forecast y ejecución
+
+El sistema deberá diferenciar claramente:
+
+- Presupuesto original.
+- Presupuesto modificado.
+- Presupuesto vigente.
+- Forecast.
+- Real.
+- Comprometido.
+
+El presupuesto vigente será el valor aprobado contra el cual se controlará la ejecución cuando existan modificaciones presupuestales autorizadas.
+
+La fórmula general será:
+
+`Disponible = Presupuesto vigente - Real - Comprometido`
+
+El presupuesto original permanecerá inalterable como referencia histórica.
+
+### 39.4 Alcance offline y multiusuario
+
+La arquitectura inicial se define como una aplicación local por instalación:
+
+- Una base SQLite por instalación.
+- Usuarios y roles locales.
+- Funcionamiento sin internet.
+- Sin edición concurrente desde varias computadoras.
+- Sin sincronización automática en nube.
+
+La arquitectura deberá conservar separación por capas para permitir una futura migración a servidor o sincronización, pero dicha capacidad no forma parte del alcance funcional inicial.
+
+### 39.5 Presupuesto maestro parametrizable
+
+El presupuesto maestro no deberá asumir que todas las empresas tienen el mismo modelo operativo. El sistema deberá permitir configurar:
+
+- Tipo de empresa: manufactura, comercio o servicios.
+- Módulos presupuestales activos o inactivos.
+- Métodos y políticas de inventario.
+- Bases de distribución de costos indirectos.
+- Cuentas que alimentan cada estado financiero.
+- Fórmulas y parámetros autorizados.
+- Unidades de medida y monedas aplicables.
+
+Estas reglas permitirán adaptar el sistema a distintos sectores sin modificar el código fuente.
+
+### 39.6 Implicación para la Fase 1
+
+La Fase 1 deberá construir únicamente la infraestructura técnica, navegación, contexto demo, SQLite, API, Electron, logs, respaldos y automatización de build. No deberá implementar todavía autenticación completa, estructura empresarial editable, presupuesto maestro, forecast ni análisis financiero.
