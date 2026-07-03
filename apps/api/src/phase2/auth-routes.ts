@@ -2,7 +2,7 @@ import type { Express, Response } from "express";
 import { z } from "zod";
 import { DatabaseManager } from "../../../../packages/database/src/index";
 import type { ApiErrorResponse } from "../../../../packages/shared/src/index";
-import { audit, type AuthenticatedRequest, text } from "./common";
+import { activeField, audit, emailField, positiveId, requirePermission, type AuthenticatedRequest, text, validateCompanyAccess } from "./common";
 
 export function registerPublicAuthRoutes(app: Express, database: DatabaseManager) {
   app.post("/api/auth/login", (request, response) => {
@@ -38,5 +38,13 @@ export function registerProtectedAuthRoutes(app: Express, database: DatabaseMana
       .run(password.hash, password.salt, new Date().toISOString(), request.identity!.id);
     audit(database, request.identity!, "CAMBIAR_CONTRASENA", "users", request.identity!.id, request.identity!.companyId, "El usuario actualizó su contraseña.");
     response.json({ message: "Contraseña actualizada correctamente." });
+  });
+
+  app.post("/api/users", requirePermission("USUARIOS:CREAR"), (request: AuthenticatedRequest, response: Response) => {
+    const input = z.object({ company_id: positiveId.nullable(), username: text(3, 80), full_name: text(3, 160), email: emailField, role_ids: z.array(positiveId).min(1), active: activeField }).parse(request.body);
+    if (input.company_id) validateCompanyAccess(request.identity!, input.company_id);
+    const id = database.createLocalUser({ companyId: input.company_id, username: input.username, fullName: input.full_name, email: input.email, roleIds: input.role_ids, active: input.active !== false && input.active !== 0 });
+    audit(database, request.identity!, "CREAR", "users", id, input.company_id, `Usuario ${input.username} creado.`, undefined, { username: input.username, company_id: input.company_id, role_ids: input.role_ids });
+    response.status(201).json({ id, message: "Usuario creado correctamente. La clave inicial debe cambiarse en el primer acceso." });
   });
 }
