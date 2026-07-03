@@ -26,7 +26,7 @@ const navigation = [
   { to: "/analisis", label: "Análisis", icon: ChartNoAxesCombined },
   { to: "/reportes", label: "Reportes", icon: FileSpreadsheet },
   { to: "/propuestas", label: "Propuestas", icon: Lightbulb },
-  { to: "/estado-sistema", label: "Estado del sistema", icon: Database },
+  { to: "/estado-sistema", label: "Estado del sistema", icon: Database, permission: "SISTEMA:LEER" },
   { to: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
