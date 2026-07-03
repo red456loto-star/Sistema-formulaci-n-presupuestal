@@ -2,11 +2,13 @@
 
 Sistema Integral de Formulación, Control y Evaluación Presupuestal Empresarial.
 
-## Estado del proyecto
+## Estado del desarrollo
 
-- **Fase 0:** análisis funcional y arquitectura aprobados.
-- **Fase 1:** base técnica con React, Node.js, SQLite, Electron y navegación inicial.
-- **Repositorio:** `red456loto-star/Sistema-formulaci-n-presupuestal`.
+- **Fase 0:** análisis funcional y arquitectura.
+- **Fase 1:** React, API local, SQLite, Electron y navegación base.
+- **Fase 2:** autenticación, usuarios, roles, empresas y estructura presupuestal.
+
+Repositorio: `red456loto-star/Sistema-formulaci-n-presupuestal`.
 
 ## Inicio rápido
 
@@ -27,7 +29,16 @@ Generación del ejecutable portable para Windows:
 npm run desktop:dist
 ```
 
-Consulta el detalle en:
+## Acceso inicial de demostración
+
+- Usuario: `admin`
+- La contraseña inicial se comunica al responsable de la instalación y debe cambiarse desde el sistema.
+- Los usuarios nuevos reciben una clave temporal local y tienen disponible el cambio de contraseña.
+
+Los datos incluidos son sintéticos y se utilizan únicamente para verificar el funcionamiento del aplicativo.
+
+Consulte:
 
 - `README_FASE_0.md`
 - `README_FASE_1.md`
+- `README_FASE_2.md`
