@@ -11,9 +11,15 @@ function ensureReference(database: DatabaseManager, table: "sites" | "responsibl
 }
 
 function linkCompanyAccounts(database: DatabaseManager, centerId: number, companyId: number) {
+  database.connection.prepare(`DELETE FROM center_accounts
+    WHERE center_id=? AND account_id NOT IN (SELECT id FROM budget_accounts WHERE company_id=?)`)
+    .run(centerId, companyId);
   database.connection.prepare(`INSERT OR IGNORE INTO center_accounts (center_id, account_id, active, created_at)
     SELECT ?, id, 1, ? FROM budget_accounts WHERE company_id=? AND active=1`)
     .run(centerId, new Date().toISOString(), companyId);
+  database.connection.prepare(`UPDATE center_accounts SET active=1
+    WHERE center_id=? AND account_id IN (SELECT id FROM budget_accounts WHERE company_id=?)`)
+    .run(centerId, companyId);
 }
 
 export function registerCenterRoutes(app: Express, database: DatabaseManager) {
@@ -46,7 +52,11 @@ export function registerCenterRoutes(app: Express, database: DatabaseManager) {
   app.delete("/api/catalog/centros/:id", requirePermission("ESTRUCTURA:ELIMINAR"), (request: AuthenticatedRequest, response: Response) => {
     const id = Number(request.params.id); const before = database.connection.prepare("SELECT * FROM activity_centers WHERE id=?").get(id) as Record<string, unknown> | undefined;
     if (!before) { response.status(404).json({ code: "NOT_FOUND", message: "Centro no encontrado." }); return; }
-    validateCompanyAccess(request.identity!, Number(before.company_id)); database.connection.prepare("UPDATE activity_centers SET active=0,updated_at=? WHERE id=?").run(new Date().toISOString(), id);
+    validateCompanyAccess(request.identity!, Number(before.company_id));
+    database.connection.transaction(() => {
+      database.connection.prepare("UPDATE activity_centers SET active=0,updated_at=? WHERE id=?").run(new Date().toISOString(), id);
+      database.connection.prepare("UPDATE center_accounts SET active=0 WHERE center_id=?").run(id);
+    })();
     audit(database, request.identity!, "ELIMINAR", "activity_centers", id, Number(before.company_id), "Centro desactivado.", before, { ...before, active: 0 }); response.json({ message: "Centro desactivado correctamente." });
   });
 }
