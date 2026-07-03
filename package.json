@@ -1,13 +1,10 @@
 {
   "name": "presucontrol-empresarial",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Sistema Integral de Formulación, Control y Evaluación Presupuestal Empresarial",
   "main": "apps/desktop/dist/main.cjs",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "concurrently -k -n API,WEB,DESKTOP -c blue,green,magenta \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:desktop\"",
     "dev:api": "npm run dev --workspace @presucontrol/api",
@@ -23,9 +20,7 @@
     "desktop:dist": "npm run verify && electron-builder --win portable --x64",
     "start:api": "npm run start --workspace @presucontrol/api"
   },
-  "dependencies": {
-    "better-sqlite3": "^12.2.0"
-  },
+  "dependencies": { "better-sqlite3": "^12.2.0" },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.18",
@@ -44,34 +39,12 @@
     "appId": "pe.presucontrol.empresarial",
     "productName": "PresuControl Empresarial",
     "artifactName": "PresuControl-Empresarial-${version}-${arch}.${ext}",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "apps/desktop/dist/**/*",
-      "apps/frontend/dist/**/*",
-      "apps/api/dist/**/*",
-      "package.json"
-    ],
+    "directories": { "output": "release" },
+    "files": ["apps/desktop/dist/**/*", "apps/frontend/dist/**/*", "apps/api/dist/**/*", "package.json"],
     "asar": true,
-    "asarUnpack": [
-      "node_modules/better-sqlite3/**/*",
-      "node_modules/bindings/**/*",
-      "node_modules/file-uri-to-path/**/*"
-    ],
+    "asarUnpack": ["node_modules/better-sqlite3/**/*", "node_modules/bindings/**/*", "node_modules/file-uri-to-path/**/*"],
     "npmRebuild": true,
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "portable": {
-      "artifactName": "PresuControl-Empresarial-${version}-x64.exe"
-    }
+    "win": { "target": [{ "target": "portable", "arch": ["x64"] }] },
+    "portable": { "artifactName": "PresuControl-Empresarial-${version}-x64.exe" }
   }
 }
