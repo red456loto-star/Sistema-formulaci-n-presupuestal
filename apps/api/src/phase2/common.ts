@@ -18,6 +18,7 @@ export interface CatalogConfig {
 }
 
 export const text = (min = 1, max = 160) => z.string().trim().min(min).max(max);
+export const codeField = (min = 1, max = 40) => text(min, max).transform((value) => value.toUpperCase());
 export const nullableText = (max = 300) => z.string().trim().max(max).optional().nullable();
 export const activeField = z.union([z.boolean(), z.number().int().min(0).max(1)]).optional();
 export const emailField = z.string().trim().email().max(160);
@@ -64,6 +65,26 @@ export function validateCompanyAccess(identity: SessionIdentity, companyId: numb
   if (!isAdmin(identity) && identity.companyId !== companyId) {
     const error = new Error("No puede acceder a información de otra empresa.");
     Object.assign(error, { statusCode: 403 });
+    throw error;
+  }
+}
+
+export function ensureActiveCompany(database: DatabaseManager, companyId: number) {
+  const company = database.connection.prepare("SELECT id FROM companies WHERE id = ? AND active = 1").get(companyId);
+  if (!company) {
+    const error = new Error("La empresa seleccionada no existe o se encuentra inactiva.");
+    Object.assign(error, { statusCode: 400 });
+    throw error;
+  }
+}
+
+export function ensureActiveRoles(database: DatabaseManager, roleIds: number[]) {
+  const uniqueIds = [...new Set(roleIds)];
+  const placeholders = uniqueIds.map(() => "?").join(",");
+  const rows = database.connection.prepare(`SELECT id FROM roles WHERE active = 1 AND id IN (${placeholders})`).all(...uniqueIds) as Array<{ id: number }>;
+  if (rows.length !== uniqueIds.length) {
+    const error = new Error("Uno o más roles seleccionados no existen o están inactivos.");
+    Object.assign(error, { statusCode: 400 });
     throw error;
   }
 }
