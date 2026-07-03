@@ -19,10 +19,15 @@ function ensureElement(database: DatabaseManager, elementId: number, companyId: 
 }
 
 function linkAccountToCenters(database: DatabaseManager, accountId: number, companyId: number) {
+  database.connection.prepare(`DELETE FROM center_accounts
+    WHERE account_id=? AND center_id NOT IN (SELECT id FROM activity_centers WHERE company_id=?)`)
+    .run(accountId, companyId);
   database.connection.prepare(`INSERT OR IGNORE INTO center_accounts (center_id, account_id, active, created_at)
     SELECT id, ?, 1, ? FROM activity_centers WHERE company_id=? AND active=1`)
     .run(accountId, new Date().toISOString(), companyId);
-  database.connection.prepare("UPDATE center_accounts SET active=1 WHERE account_id=?").run(accountId);
+  database.connection.prepare(`UPDATE center_accounts SET active=1
+    WHERE account_id=? AND center_id IN (SELECT id FROM activity_centers WHERE company_id=?)`)
+    .run(accountId, companyId);
 }
 
 export function registerAccountRoutes(app: Express, database: DatabaseManager) {
