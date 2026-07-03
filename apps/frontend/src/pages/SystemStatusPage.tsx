@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArchiveRestore, Database, HardDriveDownload, RefreshCw } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../lib/api";
 
 interface DatabaseStatus {
@@ -9,10 +10,13 @@ interface DatabaseStatus {
   journalMode: string;
   migrationCount: number;
   demoRows: number;
+  companyRows: number;
+  userRows: number;
   latestBackup: string | null;
 }
 
 export function SystemStatusPage() {
+  const { hasPermission } = useAuth();
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,7 +67,7 @@ export function SystemStatusPage() {
         <div>
           <span className="eyebrow">Mantenimiento local</span>
           <h1>Estado del sistema</h1>
-          <p>Consulta el estado de SQLite y ejecuta operaciones básicas de respaldo y restauración.</p>
+          <p>Consulta el estado de SQLite y ejecuta operaciones autorizadas de respaldo y restauración.</p>
         </div>
         <button className="button button--secondary" onClick={() => void loadStatus()} disabled={loading}>
           <RefreshCw size={17} className={loading ? "spin" : ""} /> Actualizar
@@ -84,6 +88,8 @@ export function SystemStatusPage() {
             <div><dt>Tamaño</dt><dd>{status ? `${(status.sizeBytes / 1024).toFixed(2)} KB` : "—"}</dd></div>
             <div><dt>Journal</dt><dd>{status?.journalMode ?? "—"}</dd></div>
             <div><dt>Migraciones</dt><dd>{status?.migrationCount ?? 0}</dd></div>
+            <div><dt>Empresas</dt><dd>{status?.companyRows ?? 0}</dd></div>
+            <div><dt>Usuarios</dt><dd>{status?.userRows ?? 0}</dd></div>
             <div><dt>Datos demo</dt><dd>{status?.demoRows ?? 0}</dd></div>
           </dl>
         </article>
@@ -95,12 +101,12 @@ export function SystemStatusPage() {
           </div>
           <p className="muted">Último respaldo: {status?.latestBackup ?? "Todavía no existe un respaldo."}</p>
           <div className="button-row">
-            <button className="button button--primary" onClick={createBackup} disabled={loading}>
+            {hasPermission("SISTEMA:CREAR") && <button className="button button--primary" onClick={createBackup} disabled={loading}>
               <HardDriveDownload size={17} /> Crear respaldo
-            </button>
-            <button className="button button--secondary" onClick={restoreLatest} disabled={loading || !status?.latestBackup}>
+            </button>}
+            {hasPermission("SISTEMA:EDITAR") && <button className="button button--secondary" onClick={restoreLatest} disabled={loading || !status?.latestBackup}>
               <ArchiveRestore size={17} /> Restaurar último
-            </button>
+            </button>}
           </div>
         </article>
       </section>
