@@ -2,29 +2,22 @@
 
 ## Objetivo
 
-Implementar la seguridad local, la estructura organizacional y la estructura presupuestal base de PresuControl Empresarial, sin adelantar periodos, versiones, formulación, forecast ni cálculos financieros.
+Implementar la seguridad local, la estructura organizacional y la jerarquía presupuestal base de PresuControl Empresarial, sin adelantar ejercicios, versiones, formulación, forecast ni cálculos financieros.
 
 ## Funcionalidades implementadas
 
 ### Autenticación local
 
-- Inicio de sesión mediante usuario y contraseña.
-- Contraseñas almacenadas con `scrypt` y salt individual.
-- Sesiones locales con token aleatorio, hash y vencimiento.
-- Cierre de sesión.
+- Inicio y cierre de sesión.
+- Contraseñas protegidas con `scrypt` y salt individual.
+- Sesiones locales con token y vencimiento.
 - Cambio de contraseña.
-- Bloqueo de usuarios inactivos.
-- Clave temporal para usuarios nuevos.
+- Bloqueo de usuarios y empresas inactivas.
+- Clave temporal y cambio obligatorio para usuarios nuevos.
 
-Acceso inicial de demostración:
+### Usuarios, roles y permisos
 
-- Usuario: `admin`.
-- La contraseña inicial se comunica al responsable de la instalación.
-- Debe cambiarse desde el apartado **Mi contraseña**.
-
-### Roles y permisos
-
-Roles incorporados:
+Roles disponibles:
 
 1. Administrador.
 2. Analista de presupuestos.
@@ -33,85 +26,85 @@ Roles incorporados:
 5. Aprobador.
 6. Consulta.
 
-Los permisos se controlan en frontend y backend por módulo y acción:
+Permisos por módulo y acción:
 
 - Leer.
 - Crear.
 - Editar.
 - Eliminar o desactivar.
 
-Módulos protegidos en esta fase:
+Módulos protegidos:
 
 - Usuarios.
 - Empresas.
 - Estructura.
 - Parámetros.
 - Auditoría.
+- Sistema y mantenimiento local.
+
+Controles adicionales:
+
+- Validación de roles activos.
+- Protección contra autodesactivación y retiro de roles propios.
+- Protección del último administrador activo.
+- Respaldo y restauración limitados por permisos.
 
 ### Empresas y organización
-
-Se implementaron:
 
 - Empresas.
 - Sedes o localizaciones.
 - Responsables.
 - Centros de actividad.
-- Responsable y correo asociados al centro.
-- Estados activo/inactivo.
-- Códigos únicos por empresa.
+- Responsable y correo obligatorios por centro.
+- Estados activo e inactivo.
+- Códigos únicos y normalizados en mayúsculas.
 - Selector de empresa activa.
+- Validación de pertenencia a la misma empresa.
 
 ### Estructura presupuestal
-
-Se implementaron:
 
 - Grupos presupuestales.
 - Elementos presupuestales.
 - Cuentas presupuestales.
 - Naturalezas: ingreso, costo, gasto, activo, pasivo y patrimonio.
 - Tipo de movimiento: detalle o acumuladora.
-- Árbol jerárquico y breadcrumbs.
+- Relación automática entre centros y cuentas mediante `center_accounts`.
 
-Se conserva la separación conceptual aprobada:
-
-```text
-Estructura organizacional:
-Empresa → Sede → Centro de actividad
-
-Estructura presupuestal:
-Empresa → Grupo → Elemento → Cuenta
-```
-
-En fases posteriores, cada línea presupuestal relacionará:
+La jerarquía integral es:
 
 ```text
-Centro + Cuenta + Ejercicio + Periodo + Versión
+Empresa
+└── Sede
+    └── Centro de actividad
+        └── Grupo presupuestal
+            └── Elemento presupuestal
+                └── Cuenta presupuestal
 ```
+
+En fases posteriores cada línea presupuestal incorporará además ejercicio, periodo y versión.
 
 ### Parámetros transversales
 
 - Monedas.
 - Tipos de cambio.
 - Unidades de medida.
+- Validación de fechas con formato `AAAA-MM-DD`.
+- Validación de moneda activa.
 
-### Separación empresarial
+### Separación por empresa
 
-Las rutas protegidas validan que los identificadores relacionados pertenezcan a la misma empresa. Los usuarios no administradores no pueden consultar ni modificar registros de otra empresa.
+- Los usuarios no administradores solo consultan su empresa asignada.
+- Las rutas validan que los identificadores relacionados pertenezcan a la empresa activa.
+- Los vínculos centro-cuenta se mantienen dentro de la misma empresa.
+- La jerarquía solo devuelve registros activos de la empresa seleccionada.
 
 ### Auditoría
 
-Se registran eventos de:
-
-- Creación.
-- Modificación.
-- Desactivación.
-- Cambio de contraseña.
-
-Cada evento conserva usuario, empresa, entidad, identificador, descripción, datos anteriores, datos posteriores y fecha.
+Se registran eventos de creación, modificación, desactivación y cambio de contraseña. Cada evento conserva usuario, empresa, acción, entidad, identificador, descripción, valores anteriores, valores posteriores y fecha.
 
 ## Base de datos
 
-La migración 2 agrega:
+La migración de Fase 2 contiene:
 
 - `currencies`
 - `exchange_rates`
@@ -132,7 +125,7 @@ La migración 2 agrega:
 - `center_accounts`
 - `audit_events`
 
-Se incorporaron claves foráneas, restricciones únicas e índices para empresa y jerarquía.
+Se utilizan claves foráneas, restricciones únicas, validaciones `CHECK` e índices por empresa y jerarquía.
 
 ## API principal
 
@@ -165,90 +158,71 @@ Se incorporaron claves foráneas, restricciones únicas e índices para empresa 
 - `/api/catalog/tipos-cambio`
 - `/api/catalog/unidades`
 
-### Jerarquía y auditoría
+### Jerarquía, auditoría y sistema
 
 - `GET /api/organization/hierarchy`
 - `GET /api/audit`
+- `GET /api/system/database-status`
+- `POST /api/system/backup`
+- `POST /api/system/restore-latest`
 
 ## Interfaz
-
-Se agregaron:
 
 - Pantalla de inicio de sesión.
 - Selector de empresa activa.
 - Usuarios, roles y permisos.
 - Empresas, sedes y responsables.
-- Árbol organizacional y presupuestal.
-- Formularios para centros, grupos, elementos y cuentas.
-- Monedas, tipos de cambio y unidades.
-- Visor de auditoría.
-- Mensajes claros de validación y permisos.
+- Centros, grupos, elementos y cuentas.
+- Árbol integral de seis niveles.
+- Breadcrumbs de contexto.
+- Búsqueda transversal en las tablas.
+- Parámetros y auditoría.
+- Estado de SQLite, respaldo y restauración según permisos.
+- Mensajes claros para usuarios no técnicos.
 
-La interfaz mantiene el diseño moderno de la Fase 1 y conserva la profundidad del prototipo histórico sin utilizar ventanas superpuestas.
+La interfaz conserva el menú lateral, barra superior, tarjetas, pestañas y tablas amplias, sin ventanas superpuestas.
 
-## Datos demo
+## Datos demostrativos
 
-Los datos incluidos son sintéticos y están identificados como demostrativos:
+Los datos incluidos en el seed son sintéticos y están identificados como demostrativos. No deben interpretarse como información oficial de una empresa real.
 
-- Empresa demostrativa.
-- Sede Lima.
-- Responsable Ana Torres.
-- Centro Administración.
-- Grupo Gastos operativos.
-- Elemento Servicios de terceros.
-- Cuenta Energía eléctrica.
-- Monedas PEN y USD.
-- Unidades UND, KG, HORA y MES.
+## Pruebas automatizadas
 
-## Pruebas
+Las pruebas verifican:
 
-La prueba de integración valida:
+- Inicio de API y SQLite.
+- Inicio de sesión y permisos.
+- Creación de empresa y rechazo de duplicados.
+- Normalización de códigos.
+- Creación de sede y responsable.
+- Rechazo de centros sin responsable.
+- Creación de centro, grupo, elemento y cuenta.
+- Árbol completo de seis niveles.
+- Usuario de consulta y denegación de escritura.
+- Denegación de respaldo sin permiso.
+- Auditoría y respaldo de SQLite.
 
-- Inicio de la API y SQLite.
-- Inicio de sesión.
-- Permisos del administrador.
-- Creación de empresa.
-- Rechazo de duplicados.
-- Creación de sede, responsable y centro.
-- Creación de grupo, elemento y cuenta.
-- Jerarquía y responsable del centro.
-- Creación de usuario de consulta.
-- Denegación de una operación no autorizada.
-- Auditoría.
-- Respaldo de la base de datos.
+Comando de verificación:
 
-## Verificación realizada
+```bash
+npm run verify
+```
 
-En el entorno de desarrollo se completaron correctamente:
+Este comando ejecuta typecheck, pruebas y build completo. GitHub Actions genera además el ejecutable portátil de Windows.
 
-- `npm run typecheck`
-- `npm run build`
-
-La prueba con el módulo nativo SQLite debe confirmarse en el runner Windows de GitHub Actions, donde se instala y compila `better-sqlite3`.
-
-## Criterios de aceptación
-
-La fase se considera aprobada si:
+## Criterios de aceptación cubiertos
 
 - Se crean empresas y usuarios.
-- Los roles y permisos restringen operaciones.
+- Los permisos funcionan.
+- La jerarquía completa se visualiza correctamente.
 - No se mezclan datos entre empresas.
-- Los centros tienen responsables y correos.
-- La jerarquía se visualiza correctamente.
-- Las validaciones de duplicidad funcionan.
+- Todos los centros tienen responsable y correo.
+- Existen búsquedas en las tablas.
+- Funcionan estados activo e inactivo.
+- Funcionan validaciones de duplicidad.
 - La auditoría registra operaciones.
-- El build de Electron continúa funcionando.
-- GitHub Actions genera el artifact de Windows.
+- SQLite, Electron y el flujo de build se mantienen.
 
-## Alcance no implementado todavía
+## Fuera del alcance
 
-- Ejercicios y periodos reales.
-- Versiones y escenarios.
-- Flujos de aprobación presupuestal.
-- Importación Excel.
-- Presupuesto original.
-- Forecast.
-- Presupuesto maestro.
-- Estados financieros.
-
-Estos componentes corresponden a las fases siguientes.
+No se implementan todavía ejercicios, periodos, versiones, aprobaciones presupuestales, importación Excel, presupuesto original, forecast, presupuesto maestro, estados financieros, análisis, dashboards ni reportes finales.
