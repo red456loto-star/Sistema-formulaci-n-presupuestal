@@ -6,13 +6,19 @@ import { apiRequest } from "../../lib/api";
 import { useCatalog } from "../../lib/useCatalog";
 import { DataTable, Field, FormGrid, Message, Tabs } from "../../components/phase2/Ui";
 
-type Site = { id: number; code: string; name: string };
-type Responsible = { id: number; code: string; full_name: string; email: string };
-type Center = { id: number; company_id: number; site_id: number; responsible_id?: number; code: string; name: string; center_type: string; active: number };
+type Site = { id: number; code: string; name: string; active: number };
+type Responsible = { id: number; code: string; full_name: string; email: string; active: number };
+type Center = { id: number; company_id: number; site_id: number; responsible_id: number; code: string; name: string; center_type: string; active: number };
 type Group = { id: number; company_id: number; code: string; name: string; description?: string; active: number };
 type Element = { id: number; company_id: number; group_id: number; code: string; name: string; description?: string; active: number };
 type Account = { id: number; company_id: number; element_id: number; code: string; name: string; nature: string; movement_type: string; active: number };
-type Hierarchy = { company: { id: number; code: string; commercial_name: string }; organizational: Array<Site & { centers: Array<Center & { responsible_name?: string; responsible_email?: string }> }>; budget: Array<Group & { elements: Array<Element & { accounts: Account[] }> }> };
+type BudgetGroup = Group & { elements: Array<Element & { accounts: Account[] }> };
+type HierarchyCenter = Center & { responsible_name: string; responsible_email: string; budget: BudgetGroup[] };
+type Hierarchy = {
+  company: { id: number; code: string; commercial_name: string };
+  organizational: Array<Site & { centers: HierarchyCenter[] }>;
+  budget: BudgetGroup[];
+};
 type CatalogController<T extends { id: number }> = ReturnType<typeof useCatalog<T>>;
 
 export function StructurePage() {
@@ -35,13 +41,13 @@ export function StructurePage() {
 
   useEffect(() => {
     refreshHierarchy().catch((error) => setMessage(error instanceof Error ? error.message : String(error)));
-  }, [companyId, centers.rows.length, groups.rows.length, elements.rows.length, accounts.rows.length]);
+  }, [companyId, sites.rows.length, responsibles.rows.length, centers.rows.length, groups.rows.length, elements.rows.length, accounts.rows.length]);
 
   const run = async (action: () => Promise<unknown>) => {
     setMessage("");
     try {
       await action();
-      setMessage("Registro creado correctamente.");
+      setMessage("Operación realizada correctamente.");
       await refreshHierarchy();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
@@ -51,8 +57,8 @@ export function StructurePage() {
   if (!companyId) return <div className="page-stack"><section className="page-heading"><div><span className="eyebrow">Fase 2 · Estructura</span><h1>Estructura presupuestal</h1></div></section><Message type="danger">Seleccione una empresa en la barra superior antes de administrar la estructura.</Message></div>;
 
   return <div className="page-stack">
-    <section className="page-heading"><div><span className="eyebrow">Fase 2 · Estructura</span><h1>Jerarquía organizacional y presupuestal</h1><p>La empresa, sedes y centros se mantienen separados del catálogo de grupos, elementos y cuentas. Las líneas presupuestales relacionarán ambas estructuras en fases posteriores.</p></div></section>
-    <div className="breadcrumb"><span>Empresa</span><strong>{company?.commercial_name}</strong><span>Centro + Cuenta</span></div>
+    <section className="page-heading"><div><span className="eyebrow">Fase 2 · Estructura</span><h1>Jerarquía organizacional y presupuestal</h1><p>Consulte la estructura completa de cada empresa, desde sus sedes y centros responsables hasta las cuentas presupuestales vinculadas.</p></div></section>
+    <div className="breadcrumb"><strong>{company?.commercial_name}</strong><span>→ Sede → Centro → Grupo → Elemento → Cuenta</span></div>
     <Tabs items={["Árbol jerárquico", "Centros", "Grupos", "Elementos", "Cuentas"]} active={tab} onChange={setTab} />
     {message && <Message type={message.includes("correctamente") ? "success" : "danger"}>{message}</Message>}
     {tab === "Árbol jerárquico" && <HierarchyView hierarchy={hierarchy} />}
@@ -65,19 +71,28 @@ export function StructurePage() {
 
 function HierarchyView({ hierarchy }: { hierarchy: Hierarchy | null }) {
   if (!hierarchy) return <section className="panel"><p className="muted">Cargando jerarquía...</p></section>;
-  return <div className="hierarchy-grid">
-    <section className="panel">
-      <div className="panel__heading"><div><span className="eyebrow">Estructura organizacional</span><h2>Empresa → sede → centro</h2></div><Building /></div>
-      <div className="tree">
-        <div className="tree__root"><Landmark size={18} /><strong>{hierarchy.company.commercial_name}</strong></div>
-        {hierarchy.organizational.map((site) => <div className="tree__branch" key={site.id}><div className="tree__node"><span>{site.code}</span><strong>{site.name}</strong></div>{site.centers.map((center) => <div className="tree__leaf" key={center.id}><span>{center.code}</span><div><strong>{center.name}</strong><small>{center.responsible_name ? `${center.responsible_name} · ${center.responsible_email}` : "Sin responsable"}</small></div></div>)}</div>)}
-      </div>
-    </section>
-    <section className="panel">
-      <div className="panel__heading"><div><span className="eyebrow">Estructura presupuestal</span><h2>Grupo → elemento → cuenta</h2></div><FolderTree /></div>
-      <div className="tree">{hierarchy.budget.map((group) => <div className="tree__branch" key={group.id}><div className="tree__root"><span>{group.code}</span><strong>{group.name}</strong></div>{group.elements.map((element) => <div className="tree__branch tree__branch--nested" key={element.id}><div className="tree__node"><span>{element.code}</span><strong>{element.name}</strong></div>{element.accounts.map((account) => <div className="tree__leaf" key={account.id}><span>{account.code}</span><div><strong>{account.name}</strong><small>{account.nature} · {account.movement_type}</small></div></div>)}</div>)}</div>)}</div>
-    </section>
-  </div>;
+  return <section className="panel">
+    <div className="panel__heading"><div><span className="eyebrow">Árbol integral</span><h2>Empresa → sede → centro → grupo → elemento → cuenta</h2></div><FolderTree /></div>
+    <div className="tree">
+      <div className="tree__root"><Landmark size={18} /><strong>{hierarchy.company.commercial_name}</strong></div>
+      {hierarchy.organizational.length === 0 && <p className="muted">La empresa todavía no tiene sedes activas.</p>}
+      {hierarchy.organizational.map((site) => <div className="tree__branch" key={site.id}>
+        <div className="tree__node"><span>{site.code}</span><strong>{site.name}</strong></div>
+        {site.centers.length === 0 && <div className="tree__leaf"><span>—</span><div><strong>Sin centros activos</strong><small>Registre un centro y asigne su responsable.</small></div></div>}
+        {site.centers.map((center) => <div className="tree__branch tree__branch--nested" key={center.id}>
+          <div className="tree__node"><span>{center.code}</span><div><strong>{center.name}</strong><small>{center.responsible_name} · {center.responsible_email}</small></div></div>
+          {center.budget.length === 0 && <div className="tree__leaf"><span>—</span><div><strong>Sin cuentas vinculadas</strong><small>Complete grupos, elementos y cuentas presupuestales.</small></div></div>}
+          {center.budget.map((group) => <div className="tree__branch tree__branch--nested" key={`${center.id}-${group.id}`}>
+            <div className="tree__node"><span>{group.code}</span><strong>{group.name}</strong></div>
+            {group.elements.map((element) => <div className="tree__branch tree__branch--nested" key={`${center.id}-${group.id}-${element.id}`}>
+              <div className="tree__node"><span>{element.code}</span><strong>{element.name}</strong></div>
+              {element.accounts.map((account) => <div className="tree__leaf" key={`${center.id}-${account.id}`}><span>{account.code}</span><div><strong>{account.name}</strong><small>{account.nature} · {account.movement_type}</small></div></div>)}
+            </div>)}
+          </div>)}
+        </div>)}
+      </div>)}
+    </div>
+  </section>;
 }
 
 function CenterSection({ companyId, catalog, sites, responsibles, canCreate, run }: { companyId: number; catalog: CatalogController<Center>; sites: Site[]; responsibles: Responsible[]; canCreate: boolean; run: (action: () => Promise<unknown>) => void }) {
@@ -85,11 +100,11 @@ function CenterSection({ companyId, catalog, sites, responsibles, canCreate, run
   const submit = (event: FormEvent) => {
     event.preventDefault();
     run(async () => {
-      await catalog.create({ company_id: companyId, ...form, site_id: Number(form.site_id), responsible_id: form.responsible_id ? Number(form.responsible_id) : null, active: true });
+      await catalog.create({ company_id: companyId, ...form, site_id: Number(form.site_id), responsible_id: Number(form.responsible_id), active: true });
       setForm({ site_id: "", responsible_id: "", code: "", name: "", center_type: "APOYO", description: "" });
     });
   };
-  return <CatalogLayout icon={<Building />} title="Centros de actividad" form={<form onSubmit={submit}><FormGrid><Field label="Sede"><select value={form.site_id} onChange={(e) => setForm({ ...form, site_id: e.target.value })} required disabled={!canCreate}><option value="">Seleccione</option>{sites.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></Field><Field label="Responsable"><select value={form.responsible_id} onChange={(e) => setForm({ ...form, responsible_id: e.target.value })} disabled={!canCreate}><option value="">Sin responsable</option>{responsibles.map((item) => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field><Field label="Código"><input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required disabled={!canCreate} /></Field><Field label="Nombre"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required disabled={!canCreate} /></Field><Field label="Tipo"><select value={form.center_type} onChange={(e) => setForm({ ...form, center_type: e.target.value })} disabled={!canCreate}>{["PRODUCTIVO", "APOYO", "COMERCIAL", "ADMINISTRATIVO"].map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Descripción"><input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} disabled={!canCreate} /></Field></FormGrid>{canCreate && <button className="button button--primary">Crear centro</button>}</form>} table={<DataTable headers={["Código", "Centro", "Sede", "Responsable", "Tipo", "Estado"]} rows={catalog.rows.map((row) => [row.code, row.name, sites.find((item) => item.id === row.site_id)?.name ?? row.site_id, responsibles.find((item) => item.id === row.responsible_id)?.full_name ?? "Sin responsable", row.center_type, row.active ? "Activo" : "Inactivo"])} />} />;
+  return <CatalogLayout icon={<Building />} title="Centros de actividad" form={<form onSubmit={submit}><FormGrid><Field label="Sede"><select value={form.site_id} onChange={(e) => setForm({ ...form, site_id: e.target.value })} required disabled={!canCreate}><option value="">Seleccione</option>{sites.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></Field><Field label="Responsable"><select value={form.responsible_id} onChange={(e) => setForm({ ...form, responsible_id: e.target.value })} required disabled={!canCreate}><option value="">Seleccione</option>{responsibles.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.full_name} — {item.email}</option>)}</select></Field><Field label="Código"><input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required disabled={!canCreate} /></Field><Field label="Nombre"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required disabled={!canCreate} /></Field><Field label="Tipo"><select value={form.center_type} onChange={(e) => setForm({ ...form, center_type: e.target.value })} disabled={!canCreate}>{["PRODUCTIVO", "APOYO", "COMERCIAL", "ADMINISTRATIVO"].map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Descripción"><input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} disabled={!canCreate} /></Field></FormGrid>{canCreate && <button className="button button--primary">Crear centro</button>}</form>} table={<DataTable headers={["Código", "Centro", "Sede", "Responsable", "Tipo", "Estado"]} rows={catalog.rows.map((row) => [row.code, row.name, sites.find((item) => item.id === row.site_id)?.name ?? row.site_id, responsibles.find((item) => item.id === row.responsible_id)?.full_name ?? "No asignado", row.center_type, row.active ? "Activo" : "Inactivo"])} />} />;
 }
 
 function GroupSection({ companyId, catalog, canCreate, run }: { companyId: number; catalog: CatalogController<Group>; canCreate: boolean; run: (action: () => Promise<unknown>) => void }) {
@@ -99,13 +114,13 @@ function GroupSection({ companyId, catalog, canCreate, run }: { companyId: numbe
 
 function ElementSection({ companyId, catalog, groups, canCreate, run }: { companyId: number; catalog: CatalogController<Element>; groups: Group[]; canCreate: boolean; run: (action: () => Promise<unknown>) => void }) {
   const [form, setForm] = useState({ group_id: "", code: "", name: "", description: "" });
-  return <CatalogLayout icon={<FolderTree />} title="Elementos presupuestales" form={<form onSubmit={(event) => { event.preventDefault(); run(async () => { await catalog.create({ company_id: companyId, ...form, group_id: Number(form.group_id), active: true }); setForm({ group_id: "", code: "", name: "", description: "" }); }); }}><FormGrid><Field label="Grupo"><select value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })} required disabled={!canCreate}><option value="">Seleccione</option>{groups.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></Field><Field label="Código"><input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required disabled={!canCreate} /></Field><Field label="Nombre"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required disabled={!canCreate} /></Field><Field label="Descripción"><input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} disabled={!canCreate} /></Field></FormGrid>{canCreate && <button className="button button--primary">Crear elemento</button>}</form>} table={<DataTable headers={["Código", "Elemento", "Grupo", "Estado"]} rows={catalog.rows.map((row) => [row.code, row.name, groups.find((item) => item.id === row.group_id)?.name ?? row.group_id, row.active ? "Activo" : "Inactivo"])} />} />;
+  return <CatalogLayout icon={<FolderTree />} title="Elementos presupuestales" form={<form onSubmit={(event) => { event.preventDefault(); run(async () => { await catalog.create({ company_id: companyId, ...form, group_id: Number(form.group_id), active: true }); setForm({ group_id: "", code: "", name: "", description: "" }); }); }}><FormGrid><Field label="Grupo"><select value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })} required disabled={!canCreate}><option value="">Seleccione</option>{groups.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></Field><Field label="Código"><input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required disabled={!canCreate} /></Field><Field label="Nombre"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required disabled={!canCreate} /></Field><Field label="Descripción"><input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} disabled={!canCreate} /></Field></FormGrid>{canCreate && <button className="button button--primary">Crear elemento</button>}</form>} table={<DataTable headers={["Código", "Elemento", "Grupo", "Estado"]} rows={catalog.rows.map((row) => [row.code, row.name, groups.find((item) => item.id === row.group_id)?.name ?? row.group_id, row.active ? "Activo" : "Inactivo"])} />} />;
 }
 
 function AccountSection({ companyId, catalog, elements, groups, canCreate, run }: { companyId: number; catalog: CatalogController<Account>; elements: Element[]; groups: Group[]; canCreate: boolean; run: (action: () => Promise<unknown>) => void }) {
   const [form, setForm] = useState({ element_id: "", code: "", name: "", nature: "GASTO", movement_type: "DETALLE", description: "" });
   const elementMap = useMemo(() => new Map(elements.map((item) => [item.id, item])), [elements]);
-  return <CatalogLayout icon={<WalletCards />} title="Cuentas presupuestales" form={<form onSubmit={(event) => { event.preventDefault(); run(async () => { await catalog.create({ company_id: companyId, ...form, element_id: Number(form.element_id), active: true }); setForm({ element_id: "", code: "", name: "", nature: "GASTO", movement_type: "DETALLE", description: "" }); }); }}><FormGrid><Field label="Elemento"><select value={form.element_id} onChange={(e) => setForm({ ...form, element_id: e.target.value })} required disabled={!canCreate}><option value="">Seleccione</option>{elements.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></Field><Field label="Código"><input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required disabled={!canCreate} /></Field><Field label="Nombre"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required disabled={!canCreate} /></Field><Field label="Naturaleza"><select value={form.nature} onChange={(e) => setForm({ ...form, nature: e.target.value })} disabled={!canCreate}>{["INGRESO", "COSTO", "GASTO", "ACTIVO", "PASIVO", "PATRIMONIO"].map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Movimiento"><select value={form.movement_type} onChange={(e) => setForm({ ...form, movement_type: e.target.value })} disabled={!canCreate}><option>DETALLE</option><option>ACUMULADORA</option></select></Field><Field label="Descripción"><input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} disabled={!canCreate} /></Field></FormGrid>{canCreate && <button className="button button--primary">Crear cuenta</button>}</form>} table={<DataTable headers={["Código", "Cuenta", "Ruta presupuestal", "Naturaleza", "Movimiento", "Estado"]} rows={catalog.rows.map((row) => { const element = elementMap.get(row.element_id); const group = groups.find((item) => item.id === element?.group_id); return [row.code, row.name, `${group?.name ?? "—"} → ${element?.name ?? "—"}`, row.nature, row.movement_type, row.active ? "Activa" : "Inactiva"]; })} />} />;
+  return <CatalogLayout icon={<WalletCards />} title="Cuentas presupuestales" form={<form onSubmit={(event) => { event.preventDefault(); run(async () => { await catalog.create({ company_id: companyId, ...form, element_id: Number(form.element_id), active: true }); setForm({ element_id: "", code: "", name: "", nature: "GASTO", movement_type: "DETALLE", description: "" }); }); }}><FormGrid><Field label="Elemento"><select value={form.element_id} onChange={(e) => setForm({ ...form, element_id: e.target.value })} required disabled={!canCreate}><option value="">Seleccione</option>{elements.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></Field><Field label="Código"><input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required disabled={!canCreate} /></Field><Field label="Nombre"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required disabled={!canCreate} /></Field><Field label="Naturaleza"><select value={form.nature} onChange={(e) => setForm({ ...form, nature: e.target.value })} disabled={!canCreate}>{["INGRESO", "COSTO", "GASTO", "ACTIVO", "PASIVO", "PATRIMONIO"].map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Movimiento"><select value={form.movement_type} onChange={(e) => setForm({ ...form, movement_type: e.target.value })} disabled={!canCreate}><option>DETALLE</option><option>ACUMULADORA</option></select></Field><Field label="Descripción"><input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} disabled={!canCreate} /></Field></FormGrid>{canCreate && <button className="button button--primary">Crear cuenta</button>}</form>} table={<DataTable headers={["Código", "Cuenta", "Ruta presupuestal", "Naturaleza", "Movimiento", "Estado"]} rows={catalog.rows.map((row) => { const element = elementMap.get(row.element_id); const group = groups.find((item) => item.id === element?.group_id); return [row.code, row.name, `${group?.name ?? "—"} → ${element?.name ?? "—"}`, row.nature, row.movement_type, row.active ? "Activa" : "Inactiva"]; })} />} />;
 }
 
 function CatalogLayout({ icon, title, form, table }: { icon: ReactNode; title: string; form: ReactNode; table: ReactNode }) {

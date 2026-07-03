@@ -1,11 +1,11 @@
 import type { Express, Response } from "express";
 import { z } from "zod";
 import { DatabaseManager } from "../../../../packages/database/src/index";
-import { activeField, audit, emailField, isAdmin, normalizeActive, nullableText, positiveId, requirePermission, text, type AuthenticatedRequest, validateCompanyAccess } from "./common";
+import { activeField, audit, codeField, emailField, isAdmin, normalizeActive, nullableText, positiveId, requirePermission, text, type AuthenticatedRequest, validateCompanyAccess } from "./common";
 
-const companySchema = z.object({ code: text(2, 20), commercial_name: text(2, 160), legal_name: text(2, 200), tax_id: text(8, 20), sector: text(2, 120), currency_id: positiveId, address: nullableText(), email: z.string().trim().email().optional().nullable(), phone: nullableText(40), active: activeField });
-const siteSchema = z.object({ company_id: positiveId, code: text(2, 20), name: text(2, 160), address: nullableText(), city: nullableText(100), country: text(2, 80).optional(), active: activeField });
-const responsibleSchema = z.object({ company_id: positiveId, code: text(2, 30), full_name: text(2, 160), position: text(2, 120), email: emailField, phone: nullableText(40), active: activeField });
+const companySchema = z.object({ code: codeField(2, 20), commercial_name: text(2, 160), legal_name: text(2, 200), tax_id: text(8, 20), sector: text(2, 120), currency_id: positiveId, address: nullableText(), email: z.string().trim().email().optional().nullable(), phone: nullableText(40), active: activeField });
+const siteSchema = z.object({ company_id: positiveId, code: codeField(2, 20), name: text(2, 160), address: nullableText(), city: nullableText(100), country: text(2, 80).optional(), active: activeField });
+const responsibleSchema = z.object({ company_id: positiveId, code: codeField(2, 30), full_name: text(2, 160), position: text(2, 120), email: emailField, phone: nullableText(40), active: activeField });
 
 export function registerCompanyRoutes(app: Express, database: DatabaseManager) {
   app.get("/api/catalog/empresas", requirePermission("EMPRESAS:LEER"), (request: AuthenticatedRequest, response: Response) => {

@@ -8,7 +8,7 @@ import pino from "pino";
 import { z } from "zod";
 import { DatabaseManager } from "../../../packages/database/src/index";
 import type { ApiErrorResponse, DemoContext } from "../../../packages/shared/src/index";
-import { authenticate, isAdmin, type AuthenticatedRequest } from "./phase2/common";
+import { authenticate, isAdmin, requirePermission, type AuthenticatedRequest } from "./phase2/common";
 import { registerPublicAuthRoutes, registerProtectedAuthRoutes } from "./phase2/auth-routes";
 import { registerRoleRoutes } from "./phase2/role-routes";
 import { registerUserReadRoutes } from "./phase2/user-read-routes";
@@ -85,16 +85,16 @@ export function createApp(options: StartServerOptions = {}) {
   registerParameterRoutes(app, database);
   registerOrganizationRoutes(app, database);
 
-  app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
-  app.post("/api/system/backup", async (_request, response, next) => {
+  app.get("/api/system/database-status", requirePermission("SISTEMA:LEER"), (_request, response) => response.json(database.getStatus()));
+  app.post("/api/system/backup", requirePermission("SISTEMA:CREAR"), async (_request, response, next) => {
     try { const backupPath = await database.createBackup(); response.status(201).json({ message: `Respaldo creado correctamente: ${path.basename(backupPath)}`, path: backupPath }); }
     catch (error) { next(error); }
   });
-  app.post("/api/system/restore-latest", async (_request, response, next) => {
+  app.post("/api/system/restore-latest", requirePermission("SISTEMA:EDITAR"), async (_request, response, next) => {
     try { const restoredPath = database.restoreLatestBackup(); response.json({ message: `Base restaurada desde ${path.basename(restoredPath)}.`, path: restoredPath }); }
     catch (error) { next(error); }
   });
-  app.get("/api/system/log-location", (_request, response) => response.json({ path: path.join(dataDir, "logs", "api.log") }));
+  app.get("/api/system/log-location", requirePermission("SISTEMA:LEER"), (_request, response) => response.json({ path: path.join(dataDir, "logs", "api.log") }));
 
   app.use((_request, response) => response.status(404).json({ code: "NOT_FOUND", message: "La ruta solicitada no existe." } satisfies ApiErrorResponse));
   const errorHandler: ErrorRequestHandler = (error, _request: Request, response: Response, _next) => {
