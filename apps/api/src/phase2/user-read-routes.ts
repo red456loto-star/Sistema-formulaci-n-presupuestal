@@ -1,6 +1,7 @@
 import type { Express, Response } from "express";
 import { DatabaseManager } from "../../../../packages/database/src/index";
 import { requirePermission, type AuthenticatedRequest, validateCompanyAccess } from "./common";
+import { registerUserMutationRoutes } from "./user-mutation-routes";
 
 export function registerUserReadRoutes(app: Express, database: DatabaseManager) {
   app.get("/api/users", requirePermission("USUARIOS:LEER"), (request: AuthenticatedRequest, response: Response) => {
@@ -19,4 +20,5 @@ export function registerUserReadRoutes(app: Express, database: DatabaseManager) 
       GROUP BY u.id ORDER BY u.full_name`).all(...(companyId ? [companyId] : []));
     response.json(rows);
   });
+  registerUserMutationRoutes(app, database);
 }
