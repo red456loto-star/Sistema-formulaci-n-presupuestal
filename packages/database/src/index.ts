@@ -107,7 +107,7 @@ export class DatabaseManager {
       const insertRole = this.database.prepare(`INSERT OR IGNORE INTO roles (code, name, description, active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)`);
       roles.forEach((role) => insertRole.run(...role, stamp, stamp));
 
-      const modules = ["USUARIOS", "EMPRESAS", "ESTRUCTURA", "PARAMETROS", "AUDITORIA"];
+      const modules = ["USUARIOS", "EMPRESAS", "ESTRUCTURA", "PARAMETROS", "AUDITORIA", "SISTEMA"];
       const actions = ["LEER", "CREAR", "EDITAR", "ELIMINAR"];
       const insertPermission = this.database.prepare(`INSERT OR IGNORE INTO permissions (code, module, action, description, created_at) VALUES (?, ?, ?, ?, ?)`);
       for (const module of modules) for (const action of actions) insertPermission.run(`${module}:${action}`, module, action, `${action} en ${module.toLowerCase()}`, stamp);
@@ -148,6 +148,12 @@ export class DatabaseManager {
         (company_id, element_id, code, name, nature, movement_type, description, active, created_at, updated_at)
         VALUES (?, ?, '631100', 'Energía eléctrica', 'GASTO', 'DETALLE', 'Cuenta demostrativa.', 1, ?, ?)`)
         .run(company.id, element.id, stamp, stamp);
+
+      this.database.prepare(`INSERT OR IGNORE INTO center_accounts (center_id, account_id, active, created_at)
+        SELECT centers.id, accounts.id, 1, ?
+        FROM activity_centers centers
+        JOIN budget_accounts accounts ON accounts.company_id = centers.company_id
+        WHERE centers.active = 1 AND accounts.active = 1`).run(stamp);
     })();
   }
 
@@ -192,13 +198,21 @@ export class DatabaseManager {
 
   getIdentityByToken(token: string): SessionIdentity | null {
     const row = this.database.prepare(`SELECT u.id, u.username, u.full_name, u.email, u.company_id, u.must_change_password, c.commercial_name AS company_name
-      FROM sessions s JOIN users u ON u.id = s.user_id LEFT JOIN companies c ON c.id = u.company_id
-      WHERE s.token_hash = ? AND s.expires_at > ? AND u.active = 1`)
+      FROM sessions s
+      JOIN users u ON u.id = s.user_id
+      LEFT JOIN companies c ON c.id = u.company_id
+      WHERE s.token_hash = ? AND s.expires_at > ? AND u.active = 1
+        AND (u.company_id IS NULL OR c.active = 1)`)
       .get(tokenDigest(token), now()) as Record<string, unknown> | undefined;
     if (!row) return null;
     this.database.prepare("UPDATE sessions SET last_used_at = ? WHERE token_hash = ?").run(now(), tokenDigest(token));
     const roles = (this.database.prepare(`SELECT r.code FROM roles r JOIN user_roles ur ON ur.role_id = r.id WHERE ur.user_id = ? AND r.active = 1 ORDER BY r.name`).all(row.id) as Array<{ code: string }>).map((item) => item.code);
-    const permissions = (this.database.prepare(`SELECT DISTINCT p.code FROM permissions p JOIN role_permissions rp ON rp.permission_id = p.id JOIN user_roles ur ON ur.role_id = rp.role_id WHERE ur.user_id = ? ORDER BY p.code`).all(row.id) as Array<{ code: string }>).map((item) => item.code);
+    const permissions = (this.database.prepare(`SELECT DISTINCT p.code
+      FROM permissions p
+      JOIN role_permissions rp ON rp.permission_id = p.id
+      JOIN roles r ON r.id = rp.role_id AND r.active = 1
+      JOIN user_roles ur ON ur.role_id = r.id
+      WHERE ur.user_id = ? ORDER BY p.code`).all(row.id) as Array<{ code: string }>).map((item) => item.code);
     return { id: Number(row.id), username: String(row.username), fullName: String(row.full_name), email: String(row.email), companyId: row.company_id === null ? null : Number(row.company_id), companyName: row.company_name === null ? null : String(row.company_name), mustChangePassword: Boolean(row.must_change_password), roles, permissions };
   }
 
