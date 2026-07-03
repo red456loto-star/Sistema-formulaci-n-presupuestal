@@ -42,8 +42,6 @@ export function registerProtectedAuthRoutes(app: Express, database: DatabaseMana
     const password = database.createPassword(input.newPassword);
     database.connection.prepare("UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = 0, updated_at = ? WHERE id = ?")
       .run(password.hash, password.salt, new Date().toISOString(), request.identity!.id);
-    database.connection.prepare("DELETE FROM sessions WHERE user_id = ? AND token_hash <> ?")
-      .run(request.identity!.id, request.authToken ? database.connection.prepare("SELECT token_hash FROM sessions WHERE token_hash = token_hash LIMIT 1").get() : "");
     audit(database, request.identity!, "CAMBIAR_CONTRASENA", "users", request.identity!.id, request.identity!.companyId, "El usuario actualizó su contraseña.");
     response.json({ message: "Contraseña actualizada correctamente." });
   });
