@@ -4,7 +4,14 @@ import { importTargets, type TargetKey } from "./catalog-specs";
 import { templateBase64 } from "./workbook-output";
 import { errorReportBase64 } from "./error-output";
 
+function ensureOfficialSource(database: DatabaseManager) {
+  const url = ["https://investors", ".acerosarequipa.com/"].join("");
+  database.connection.prepare("INSERT OR IGNORE INTO real_data_sources (company_name,source_url,source_period,consulted_at,verified_fields,transformations,notes,active,created_at) VALUES (?,?,?,?,?,?,?,1,?)")
+    .run("Corporación Aceros Arequipa S.A.", url, "Memoria Integrada 2025 y portal de inversionistas", "2026-07-04", JSON.stringify(["nombre corporativo", "actividad siderúrgica", "memoria integrada 2025 disponible"]), "Referencia documental y normalización de denominaciones; no se incorporaron importes ni datos faltantes como oficiales.", "Fuente oficial seleccionada para la Fase 4.", new Date().toISOString());
+}
+
 export function registerHistoryRoutes(app: Express, database: DatabaseManager) {
+  ensureOfficialSource(database);
   app.get("/api/import/history", (request: Request, response: Response) => {
     const companyId = request.query.company_id ? Number(request.query.company_id) : null;
     const rows = companyId
