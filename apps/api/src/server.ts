@@ -16,6 +16,8 @@ import { registerParameterRoutes } from "./phase2/parameter-routes";
 import { registerOrganizationRoutes } from "./phase2/organization-routes";
 import { registerExerciseRoutes } from "./phase3/exercise-routes";
 import { registerVersionRoutes } from "./phase3/version-routes";
+import { ensurePhase4Schema } from "./phase4/schema";
+import { registerImportRoutes } from "./phase4/import-routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -38,11 +40,12 @@ export function createApp(options: StartServerOptions = {}) {
   const dataDir = resolveDataDir(options.dataDir);
   const logger = createLogger(dataDir);
   const database = new DatabaseManager(dataDir);
+  ensurePhase4Schema(database);
   const app = express();
 
   app.disable("x-powered-by");
   app.use(cors({ origin: true }));
-  app.use(express.json({ limit: "10mb" }));
+  app.use(express.json({ limit: "30mb" }));
   app.use((request, response, next) => {
     const startedAt = Date.now();
     response.on("finish", () => logger.info({ method: request.method, path: request.path, status: response.statusCode, durationMs: Date.now() - startedAt }, "Solicitud API local"));
@@ -50,7 +53,7 @@ export function createApp(options: StartServerOptions = {}) {
   });
 
   app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.3.0", phase: 3, accessMode: "directo",
+    status: "ok", service: "presucontrol-api", version: "0.4.0", phase: 4, accessMode: "directo",
     timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
   }));
 
@@ -65,7 +68,8 @@ export function createApp(options: StartServerOptions = {}) {
       ejercicios: count("budget_exercises"),
       versiones: count("budget_versions"),
       periodos: count("budget_periods"),
-      mensaje: "Fase 3: empresas, estructura, ejercicios, periodos y versiones operativos sin login.",
+      importaciones: count("import_batches"),
+      mensaje: "Fase 4: tablas maestras importables desde Excel, sin login ni montos presupuestales.",
     });
   });
 
@@ -77,6 +81,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerOrganizationRoutes(app, database);
   registerExerciseRoutes(app, database);
   registerVersionRoutes(app, database);
+  registerImportRoutes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
