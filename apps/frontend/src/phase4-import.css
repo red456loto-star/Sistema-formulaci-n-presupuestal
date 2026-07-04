@@ -1,0 +1,83 @@
+.mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.import-table-wrap {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--line, #d9e1ec);
+  border-radius: 14px;
+}
+
+.import-data-table {
+  min-width: 1100px;
+}
+
+.import-data-table input[type="text"],
+.import-data-table input:not([type]) {
+  min-width: 145px;
+  width: 100%;
+}
+
+.import-data-table .row-excluded {
+  opacity: 0.55;
+  background: #f5f7fa;
+}
+
+.cell-notes {
+  display: grid;
+  gap: 5px;
+  min-width: 220px;
+  font-size: 0.82rem;
+}
+
+.text-danger {
+  color: #b42318;
+}
+
+.reference-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f3f7fb;
+}
+
+.reference-box span {
+  flex: 1 1 280px;
+}
+
+.check-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.import-metrics {
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+}
+
+.status-pill--warning {
+  background: #fff7e6;
+  color: #8a4b08;
+}
+
+@media (max-width: 900px) {
+  .import-metrics {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+  }
+}
