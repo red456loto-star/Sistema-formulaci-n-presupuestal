@@ -1,4 +1,3 @@
-
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
@@ -23,6 +22,7 @@ export class DatabaseManager {
     this.runMigrations();
     this.seedDemoContext();
     this.seedPhase2();
+    this.seedPhase3();
   }
 
   get connection() { return this.database; }
@@ -109,6 +109,44 @@ export class DatabaseManager {
     })();
   }
 
+  private seedPhase3() {
+    this.database.transaction(() => {
+      const stamp = now();
+      const company = this.database.prepare("SELECT id, currency_id FROM companies WHERE code = 'DEMO'").get() as { id: number; currency_id: number } | undefined;
+      if (!company) return;
+
+      this.database.prepare(`INSERT OR IGNORE INTO budget_exercises
+        (company_id, code, budget_year, start_date, end_date, currency_id, notes, active, created_at, updated_at)
+        VALUES (?, 'EJ-2027', 2027, '2027-01-01', '2027-12-31', ?, 'Ejercicio demostrativo para validar la estructura temporal.', 1, ?, ?)`)
+        .run(company.id, company.currency_id, stamp, stamp);
+
+      const exercise = this.database.prepare("SELECT id FROM budget_exercises WHERE company_id = ? AND budget_year = 2027").get(company.id) as { id: number };
+      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      const insertPeriod = this.database.prepare(`INSERT OR IGNORE INTO budget_periods
+        (company_id, exercise_id, period_number, name, start_date, end_date, status, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'ABIERTO', 'Periodo demostrativo.', ?, ?)`);
+      for (let month = 1; month <= 12; month += 1) {
+        const startDate = `${2027}-${String(month).padStart(2, "0")}-01`;
+        const lastDay = new Date(Date.UTC(2027, month, 0)).getUTCDate();
+        const endDate = `${2027}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+        insertPeriod.run(company.id, exercise.id, month, monthNames[month - 1], startDate, endDate, stamp, stamp);
+      }
+
+      const insertProjection = this.database.prepare(`INSERT OR IGNORE INTO projection_years
+        (company_id, exercise_id, sequence, year, description, active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?)`);
+      for (let sequence = 1; sequence <= 3; sequence += 1) {
+        const year = 2027 + sequence;
+        insertProjection.run(company.id, exercise.id, sequence, year, `Proyección anual ${year}`, stamp, stamp);
+      }
+
+      this.database.prepare(`INSERT OR IGNORE INTO budget_versions
+        (company_id, exercise_id, period_id, source_version_id, copied_from_version_id, responsible_id, code, name, version_type, version_number, status, notes, created_at, updated_at)
+        VALUES (?, ?, NULL, NULL, NULL, NULL, 'ORI-1', 'Original 1.0', 'ORIGINAL', 1, 'BORRADOR', 'Versión demostrativa sin importes.', ?, ?)`)
+        .run(company.id, exercise.id, stamp, stamp);
+    })();
+  }
+
   getDemoContext(): DemoContext {
     return this.database.prepare("SELECT empresa, ejercicio, periodo, version, usuario FROM demo_context ORDER BY id LIMIT 1").get() as DemoContext;
   }
@@ -117,6 +155,8 @@ export class DatabaseManager {
     const migrationCount = (this.database.prepare("SELECT COUNT(*) AS total FROM schema_migrations").get() as { total: number }).total;
     const demoRows = (this.database.prepare("SELECT COUNT(*) AS total FROM demo_context").get() as { total: number }).total;
     const companyRows = (this.database.prepare("SELECT COUNT(*) AS total FROM companies").get() as { total: number }).total;
+    const exerciseRows = (this.database.prepare("SELECT COUNT(*) AS total FROM budget_exercises").get() as { total: number }).total;
+    const versionRows = (this.database.prepare("SELECT COUNT(*) AS total FROM budget_versions").get() as { total: number }).total;
     const latestBackup = this.listBackups()[0] ?? null;
     return {
       connected: this.database.open,
@@ -126,6 +166,8 @@ export class DatabaseManager {
       migrationCount,
       demoRows,
       companyRows,
+      exerciseRows,
+      versionRows,
       accessMode: "directo_sin_login",
       latestBackup: latestBackup ? path.basename(latestBackup) : null,
     };
