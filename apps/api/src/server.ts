@@ -1,4 +1,3 @@
-
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import fs from "node:fs";
@@ -15,6 +14,8 @@ import { registerGroupElementRoutes } from "./phase2/group-element-routes";
 import { registerAccountRoutes } from "./phase2/account-routes";
 import { registerParameterRoutes } from "./phase2/parameter-routes";
 import { registerOrganizationRoutes } from "./phase2/organization-routes";
+import { registerExerciseRoutes } from "./phase3/exercise-routes";
+import { registerVersionRoutes } from "./phase3/version-routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -49,7 +50,7 @@ export function createApp(options: StartServerOptions = {}) {
   });
 
   app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.2.1", phase: 2, accessMode: "directo",
+    status: "ok", service: "presucontrol-api", version: "0.3.0", phase: 3, accessMode: "directo",
     timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
   }));
 
@@ -61,10 +62,10 @@ export function createApp(options: StartServerOptions = {}) {
       responsables: count("responsibles"),
       centros: count("activity_centers"),
       cuentas: count("budget_accounts"),
-      ejercicios: 1,
-      versiones: 1,
-      periodos: 12,
-      mensaje: "Fase 2: empresas y estructura presupuestal operativas, con acceso local directo.",
+      ejercicios: count("budget_exercises"),
+      versiones: count("budget_versions"),
+      periodos: count("budget_periods"),
+      mensaje: "Fase 3: empresas, estructura, ejercicios, periodos y versiones operativos sin login.",
     });
   });
 
@@ -74,6 +75,8 @@ export function createApp(options: StartServerOptions = {}) {
   registerAccountRoutes(app, database);
   registerParameterRoutes(app, database);
   registerOrganizationRoutes(app, database);
+  registerExerciseRoutes(app, database);
+  registerVersionRoutes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
@@ -99,7 +102,11 @@ export function createApp(options: StartServerOptions = {}) {
     const message = error instanceof Error ? error.message : "Se produjo un error interno.";
     const statusCode = Number((error as { statusCode?: number })?.statusCode || 500);
     if (message.includes("UNIQUE constraint failed")) {
-      response.status(409).json({ code: "DUPLICATE", message: "Ya existe un registro con el mismo código, RUC o correo." } satisfies ApiErrorResponse);
+      response.status(409).json({ code: "DUPLICATE", message: "Ya existe un registro con la misma clave única: código, año, número, RUC o correo." } satisfies ApiErrorResponse);
+      return;
+    }
+    if (message.includes("CHECK constraint failed")) {
+      response.status(400).json({ code: "INVALID_VALUE", message: "Uno de los valores no cumple las reglas permitidas." } satisfies ApiErrorResponse);
       return;
     }
     if (message.includes("FOREIGN KEY constraint failed")) {

@@ -57,18 +57,25 @@ a { color: inherit; text-decoration: none; }
 .context-item { padding: 7px 11px; border-left: 2px solid #dce6f4; }
 .context-item span { display: block; color: var(--muted); font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; }
 .context-item strong { display: block; margin-top: 3px; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-
-
-
-
+.context-item--select select {
+  width: 100%;
+  margin-top: 3px;
+  padding: 2px 20px 2px 0;
+  color: var(--text);
+  font-size: .82rem;
+  font-weight: 750;
+  background: transparent;
+  border: 0;
+  outline: none;
+  text-overflow: ellipsis;
+}
+.context-item--select select:disabled { color: #94a3b8; cursor: not-allowed; }
 .local-mode { min-width: 178px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
 .local-mode strong, .local-mode span { display: block; }
 .local-mode strong { font-size: .82rem; color: var(--navy); }
 .local-mode span { margin-top: 2px; color: var(--muted); font-size: .7rem; }
 
 .content { width: min(1500px, 100%); margin: 0 auto; padding: 30px; }
-
 .page-stack { display: grid; gap: 22px; }
 .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; }
 .page-heading h1 { margin: 4px 0 8px; font-size: clamp(1.7rem, 3vw, 2.45rem); letter-spacing: -.04em; }

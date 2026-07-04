@@ -73,3 +73,10 @@
 }
 .inline-message--success { color: #166534; background: #f0fdf4; }
 .inline-message--danger { color: #991b1b; background: #fff1f2; }
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 190px;
+}
+.field textarea { resize: vertical; }

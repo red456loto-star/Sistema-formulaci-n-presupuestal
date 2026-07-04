@@ -1,4 +1,3 @@
-
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
@@ -28,7 +27,7 @@ test("Fase 2 funciona con acceso directo, sin login, usuarios ni permisos", asyn
 
   const health = await json(`${instance.url}/api/health`);
   assert.equal(health.response.status, 200);
-  assert.equal(health.body.phase, 2);
+  assert.equal(health.body.phase, 3);
   assert.equal(health.body.accessMode, "directo");
 
   const login = await json(`${instance.url}/api/auth/login`, { method: "POST", headers, body: "{}" });

@@ -1,4 +1,3 @@
-
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { WorkspaceProvider } from "./context/WorkspaceContext";
@@ -8,10 +7,10 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { CompaniesPage } from "./pages/phase2/CompaniesPage";
 import { StructurePage } from "./pages/phase2/StructurePage";
 import { ParametersPage } from "./pages/phase2/ParametersPage";
+import { PeriodsPage } from "./pages/phase3/PeriodsPage";
+import { VersionsPage } from "./pages/phase3/VersionsPage";
 
 const futureModules = [
-  ["/periodos", "Periodos", "Registro de múltiples periodos de presupuestación."],
-  ["/versiones", "Versiones", "Registro de múltiples versiones presupuestales por periodo."],
   ["/importacion", "Importación Excel", "Importación de tablas maestras desde archivos Excel."],
   ["/presupuesto-original", "Presupuesto original", "Presupuesto anual mensualizado y proyección anual de tres años."],
   ["/forecast", "Forecast", "Presupuesto revisado con valores reales y proyectados."],
@@ -32,6 +31,8 @@ export default function App() {
           <Route path="/empresas" element={<CompaniesPage />} />
           <Route path="/estructura" element={<StructurePage />} />
           <Route path="/parametros" element={<ParametersPage />} />
+          <Route path="/periodos" element={<PeriodsPage />} />
+          <Route path="/versiones" element={<VersionsPage />} />
           {futureModules.map(([path, title, description]) => (
             <Route key={path} path={path} element={<ModulePage title={title} description={description} />} />
           ))}
