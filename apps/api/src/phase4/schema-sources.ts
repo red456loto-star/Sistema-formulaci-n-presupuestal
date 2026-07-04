@@ -21,7 +21,7 @@ export async function loadExcel(contentBase64: string) {
   const buffer = Buffer.from(contentBase64, "base64");
   if (!buffer.length || buffer.length > 20 * 1024 * 1024) throw Object.assign(new Error("El archivo debe pesar entre 1 byte y 20 MB."), { statusCode: 400 });
   const workbook = new ExcelJS.Workbook();
-  try { await workbook.xlsx.load(buffer); }
+  try { await workbook.xlsx.load(buffer as any); }
   catch { throw Object.assign(new Error("El archivo está corrupto o no es un .xlsx válido."), { statusCode: 400 }); }
   if (workbook.worksheets.length === 0) throw Object.assign(new Error("El archivo no contiene hojas disponibles."), { statusCode: 400 });
   return workbook;
