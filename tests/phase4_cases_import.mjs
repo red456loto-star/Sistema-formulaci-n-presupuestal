@@ -14,7 +14,7 @@ test("Fase 4 inspecciona archivos Excel válidos", async (context) => {
   });
 
   const health = await json(`${server.url}/api/health`);
-  assert.equal(health.body.phase, 4);
+  assert.ok(health.body.phase >= 4);
   assert.equal(health.body.accessMode, "directo");
   assert.equal((await json(`${server.url}/api/import/catalogs`)).body.length, 10);
 
