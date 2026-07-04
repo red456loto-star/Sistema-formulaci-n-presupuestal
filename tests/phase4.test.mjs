@@ -1,2 +1,2 @@
-import "./phase4-import.cases.mjs";
-import "./phase4-validation.cases.mjs";
+import "./phase4_cases_import.mjs";
+import "./phase4_cases_validation.mjs";
