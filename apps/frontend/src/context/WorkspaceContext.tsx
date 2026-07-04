@@ -1,6 +1,6 @@
+
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { apiRequest } from "../lib/api";
-import { useAuth } from "./AuthContext";
 
 export interface Company {
   id: number;
@@ -25,7 +25,6 @@ const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 const STORAGE_KEY = "presucontrol.active.company";
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { user, hasPermission } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyId, setCompanyIdState] = useState<number | null>(() => {
     const value = Number(window.localStorage.getItem(STORAGE_KEY));
@@ -33,18 +32,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   });
 
   const refreshCompanies = async () => {
-    if (!user || !hasPermission("EMPRESAS:LEER")) return;
     const rows = await apiRequest<Company[]>("/api/catalog/empresas");
     setCompanies(rows);
-    const allowed = rows.some((item) => item.id === companyId);
-    if (!allowed) {
-      const preferred = rows.find((item) => item.id === user.companyId) ?? rows[0] ?? null;
-      setCompanyIdState(preferred?.id ?? null);
+    if (!rows.some((item) => item.id === companyId)) {
+      setCompanyIdState(rows.find((item) => item.active)?.id ?? rows[0]?.id ?? null);
     }
   };
 
-  useEffect(() => { refreshCompanies().catch(() => setCompanies([])); }, [user?.id]);
-
+  useEffect(() => { void refreshCompanies().catch(() => setCompanies([])); }, []);
   useEffect(() => {
     if (companyId) window.localStorage.setItem(STORAGE_KEY, String(companyId));
     else window.localStorage.removeItem(STORAGE_KEY);

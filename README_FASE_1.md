@@ -48,7 +48,7 @@ SQLite
 La primera versión está diseñada como aplicación local por instalación:
 
 - Una base SQLite por instalación.
-- Usuarios y roles locales en fases posteriores.
+- Acceso local directo, sin cuentas, contraseñas, roles ni permisos.
 - Sin edición simultánea desde varias computadoras.
 - Sin sincronización en nube.
 - Preparada para una futura migración a servidor, pero esa función no pertenece al alcance inicial.
@@ -58,10 +58,9 @@ La primera versión está diseñada como aplicación local por instalación:
 ### Frontend
 
 - Menú lateral moderno y adaptable.
-- Barra superior con empresa, ejercicio, periodo, versión y usuario demo.
+- Barra superior con empresa, ejercicio, periodo y versión.
 - Página de inicio.
 - Pantallas base para todos los módulos futuros.
-- Página de estado del sistema.
 - Manejo global de errores.
 - Diseño responsive.
 

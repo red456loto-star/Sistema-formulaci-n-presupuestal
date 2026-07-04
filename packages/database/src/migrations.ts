@@ -34,7 +34,7 @@ export const migrations: Migration[] = [
   },
   {
     version: 2,
-    name: "seguridad_organizacion_estructura_fase_2",
+    name: "organizacion_estructura_fase_2",
     statements: [
       `CREATE TABLE IF NOT EXISTS currencies (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,60 +109,11 @@ export const migrations: Migration[] = [
         UNIQUE(company_id, code),
         UNIQUE(company_id, email)
       )`,
-      `CREATE TABLE IF NOT EXISTS roles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT NOT NULL UNIQUE,
-        name TEXT NOT NULL,
-        description TEXT NOT NULL,
-        active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS permissions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT NOT NULL UNIQUE,
-        module TEXT NOT NULL,
-        action TEXT NOT NULL,
-        description TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS role_permissions (
-        role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-        permission_id INTEGER NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
-        PRIMARY KEY(role_id, permission_id)
-      )`,
-      `CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL,
-        username TEXT NOT NULL UNIQUE,
-        full_name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        password_salt TEXT NOT NULL,
-        active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
-        must_change_password INTEGER NOT NULL DEFAULT 0 CHECK(must_change_password IN (0,1)),
-        last_login_at TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS user_roles (
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
-        PRIMARY KEY(user_id, role_id)
-      )`,
-      `CREATE TABLE IF NOT EXISTS sessions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        token_hash TEXT NOT NULL UNIQUE,
-        created_at TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        last_used_at TEXT NOT NULL
-      )`,
       `CREATE TABLE IF NOT EXISTS activity_centers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
         site_id INTEGER NOT NULL REFERENCES sites(id) ON DELETE RESTRICT,
-        responsible_id INTEGER REFERENCES responsibles(id) ON DELETE SET NULL,
+        responsible_id INTEGER NOT NULL REFERENCES responsibles(id) ON DELETE RESTRICT,
         code TEXT NOT NULL,
         name TEXT NOT NULL,
         center_type TEXT NOT NULL DEFAULT 'APOYO',
@@ -218,7 +169,6 @@ export const migrations: Migration[] = [
       )`,
       `CREATE TABLE IF NOT EXISTS audit_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL,
         action TEXT NOT NULL,
         entity TEXT NOT NULL,
@@ -235,7 +185,36 @@ export const migrations: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_elements_company_group ON budget_elements(company_id, group_id)`,
       `CREATE INDEX IF NOT EXISTS idx_accounts_company_element ON budget_accounts(company_id, element_id)`,
       `CREATE INDEX IF NOT EXISTS idx_audit_company_date ON audit_events(company_id, created_at DESC)`,
-      `CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash)`,
+    ],
+  },
+  {
+    version: 3,
+    name: "acceso_directo_sin_autenticacion",
+    statements: [
+      `CREATE TABLE audit_events_direct (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL,
+        action TEXT NOT NULL,
+        entity TEXT NOT NULL,
+        entity_id INTEGER,
+        description TEXT NOT NULL,
+        before_data TEXT,
+        after_data TEXT,
+        created_at TEXT NOT NULL
+      )`,
+      `INSERT INTO audit_events_direct (id, company_id, action, entity, entity_id, description, before_data, after_data, created_at)
+       SELECT id, company_id, action, entity, entity_id, description, before_data, after_data, created_at FROM audit_events`,
+      `DROP TABLE audit_events`,
+      `ALTER TABLE audit_events_direct RENAME TO audit_events`,
+      `DROP INDEX IF EXISTS idx_sessions_token`,
+      `DROP TABLE IF EXISTS sessions`,
+      `DROP TABLE IF EXISTS user_roles`,
+      `DROP TABLE IF EXISTS role_permissions`,
+      `DROP TABLE IF EXISTS permissions`,
+      `DROP TABLE IF EXISTS roles`,
+      `DROP TABLE IF EXISTS users`,
+      `CREATE INDEX IF NOT EXISTS idx_audit_company_date ON audit_events(company_id, created_at DESC)`,
+      `INSERT OR REPLACE INTO app_meta (key, value, updated_at) VALUES ('access_mode', 'directo_sin_login', datetime('now'))`,
     ],
   },
 ];

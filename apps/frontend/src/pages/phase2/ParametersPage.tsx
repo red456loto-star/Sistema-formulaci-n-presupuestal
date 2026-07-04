@@ -1,6 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Coins, Ruler, TrendingUp } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
 import { useCatalog } from "../../lib/useCatalog";
 import { DataTable, Field, FormGrid, Message, Tabs } from "../../components/phase2/Ui";
 
@@ -9,7 +8,6 @@ type ExchangeRate = { id: number; currency_id: number; rate_date: string; buy_ra
 type Unit = { id: number; code: string; name: string; category: string; active: number };
 
 export function ParametersPage() {
-  const { hasPermission } = useAuth();
   const [tab, setTab] = useState("Monedas");
   const [message, setMessage] = useState("");
   const currencies = useCatalog<Currency>("monedas");
@@ -18,7 +16,7 @@ export function ParametersPage() {
   const [currency, setCurrency] = useState({ code: "", name: "", symbol: "", decimals: "2" });
   const [rate, setRate] = useState({ currency_id: "", rate_date: "", buy_rate: "", sell_rate: "", source: "" });
   const [unit, setUnit] = useState({ code: "", name: "", category: "GENERAL" });
-  const canCreate = hasPermission("PARAMETROS:CREAR");
+  const canCreate = true;
 
   const run = async (action: () => Promise<unknown>) => {
     setMessage("");

@@ -1,7 +1,7 @@
-import type { Express, Response } from "express";
+import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { DatabaseManager } from "../../../../packages/database/src/index";
-import { activeField, audit, codeField, normalizeActive, nullableText, positiveId, requirePermission, text, type AuthenticatedRequest, validateCompanyAccess } from "./common";
+import { activeField, audit, codeField, ensureCompanyExists, normalizeActive, nullableText, positiveId, requireCompanyId, text } from "./common";
 
 const schema = z.object({
   company_id: positiveId,
@@ -31,15 +31,14 @@ function linkAccountToCenters(database: DatabaseManager, accountId: number, comp
 }
 
 export function registerAccountRoutes(app: Express, database: DatabaseManager) {
-  app.get("/api/catalog/cuentas", requirePermission("ESTRUCTURA:LEER"), (request: AuthenticatedRequest, response: Response) => {
-    const companyId = Number(request.query.company_id || request.identity!.companyId);
-    validateCompanyAccess(request.identity!, companyId);
+  app.get("/api/catalog/cuentas", (request: Request, response: Response) => {
+    const companyId = requireCompanyId(request.query.company_id); ensureCompanyExists(database, companyId);
     response.json(database.connection.prepare("SELECT * FROM budget_accounts WHERE company_id=? ORDER BY code").all(companyId));
   });
 
-  app.post("/api/catalog/cuentas", requirePermission("ESTRUCTURA:CREAR"), (request: AuthenticatedRequest, response: Response) => {
+  app.post("/api/catalog/cuentas", (request: Request, response: Response) => {
     const input = schema.parse(request.body);
-    validateCompanyAccess(request.identity!, input.company_id);
+    ensureCompanyExists(database, input.company_id, true);
     if (!ensureElement(database, input.element_id, input.company_id)) { response.status(400).json({ code: "INVALID_ELEMENT", message: "El elemento no pertenece a la empresa activa o está inactivo." }); return; }
     const stamp = new Date().toISOString();
     const id = database.connection.transaction(() => {
@@ -49,17 +48,16 @@ export function registerAccountRoutes(app: Express, database: DatabaseManager) {
       linkAccountToCenters(database, createdId, input.company_id);
       return createdId;
     })();
-    audit(database, request.identity!, "CREAR", "budget_accounts", id, input.company_id, `Cuenta ${input.name} creada.`, undefined, input);
+    audit(database, "CREAR", "budget_accounts", id, input.company_id, `Cuenta ${input.name} creada.`, undefined, input);
     response.status(201).json({ id, message: "Cuenta creada correctamente." });
   });
 
-  app.patch("/api/catalog/cuentas/:id", requirePermission("ESTRUCTURA:EDITAR"), (request: AuthenticatedRequest, response: Response) => {
+  app.patch("/api/catalog/cuentas/:id", (request: Request, response: Response) => {
     const id = Number(request.params.id);
     const input = schema.partial().parse(request.body);
     const before = database.connection.prepare("SELECT * FROM budget_accounts WHERE id=?").get(id) as Record<string, unknown> | undefined;
     if (!before) { response.status(404).json({ code: "NOT_FOUND", message: "Cuenta no encontrada." }); return; }
     const companyId = Number(input.company_id ?? before.company_id);
-    validateCompanyAccess(request.identity!, companyId);
     const values = { ...before, ...input, active: normalizeActive(input.active ?? before.active) } as Record<string, unknown>;
     if (!ensureElement(database, Number(values.element_id), companyId)) { response.status(400).json({ code: "INVALID_ELEMENT", message: "El elemento no pertenece a la empresa activa o está inactivo." }); return; }
     database.connection.transaction(() => {
@@ -67,20 +65,19 @@ export function registerAccountRoutes(app: Express, database: DatabaseManager) {
         .run(values.company_id, values.element_id, values.code, values.name, values.nature, values.movement_type, values.description, values.active, new Date().toISOString(), id);
       if (Number(values.active) === 1) linkAccountToCenters(database, id, companyId);
     })();
-    audit(database, request.identity!, "EDITAR", "budget_accounts", id, companyId, "Cuenta actualizada.", before, values);
+    audit(database, "EDITAR", "budget_accounts", id, companyId, "Cuenta actualizada.", before, values);
     response.json({ message: "Cuenta actualizada correctamente." });
   });
 
-  app.delete("/api/catalog/cuentas/:id", requirePermission("ESTRUCTURA:ELIMINAR"), (request: AuthenticatedRequest, response: Response) => {
+  app.delete("/api/catalog/cuentas/:id", (request: Request, response: Response) => {
     const id = Number(request.params.id);
     const before = database.connection.prepare("SELECT * FROM budget_accounts WHERE id=?").get(id) as Record<string, unknown> | undefined;
     if (!before) { response.status(404).json({ code: "NOT_FOUND", message: "Cuenta no encontrada." }); return; }
-    validateCompanyAccess(request.identity!, Number(before.company_id));
     database.connection.transaction(() => {
       database.connection.prepare("UPDATE budget_accounts SET active=0,updated_at=? WHERE id=?").run(new Date().toISOString(), id);
       database.connection.prepare("UPDATE center_accounts SET active=0 WHERE account_id=?").run(id);
     })();
-    audit(database, request.identity!, "ELIMINAR", "budget_accounts", id, Number(before.company_id), "Cuenta desactivada.", before, { ...before, active: 0 });
+    audit(database, "ELIMINAR", "budget_accounts", id, Number(before.company_id), "Cuenta desactivada.", before, { ...before, active: 0 });
     response.json({ message: "Cuenta desactivada correctamente." });
   });
 }
