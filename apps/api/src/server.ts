@@ -18,6 +18,8 @@ import { registerExerciseRoutes } from "./phase3/exercise-routes";
 import { registerVersionRoutes } from "./phase3/version-routes";
 import { ensurePhase4Schema } from "./phase4/schema";
 import { registerImportRoutes } from "./phase4/import-routes";
+import { ensurePhase5Schema } from "./phase5/schema";
+import { registerOriginalBudgetRoutes } from "./phase5/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -41,6 +43,7 @@ export function createApp(options: StartServerOptions = {}) {
   const logger = createLogger(dataDir);
   const database = new DatabaseManager(dataDir);
   ensurePhase4Schema(database);
+  ensurePhase5Schema(database);
   const app = express();
 
   app.disable("x-powered-by");
@@ -53,7 +56,7 @@ export function createApp(options: StartServerOptions = {}) {
   });
 
   app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.4.0", phase: 4, accessMode: "directo",
+    status: "ok", service: "presucontrol-api", version: "0.5.0", phase: 5, accessMode: "directo",
     timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
   }));
 
@@ -69,7 +72,8 @@ export function createApp(options: StartServerOptions = {}) {
       versiones: count("budget_versions"),
       periodos: count("budget_periods"),
       importaciones: count("import_batches"),
-      mensaje: "Fase 4: tablas maestras importables desde Excel, sin login ni montos presupuestales.",
+      lineas_presupuesto_original: count("budget_original_lines"),
+      mensaje: "Fase 5: presupuesto original mensual, total anual y tres años de proyección, sin login.",
     });
   });
 
@@ -82,6 +86,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerExerciseRoutes(app, database);
   registerVersionRoutes(app, database);
   registerImportRoutes(app, database);
+  registerOriginalBudgetRoutes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
@@ -107,7 +112,7 @@ export function createApp(options: StartServerOptions = {}) {
     const message = error instanceof Error ? error.message : "Se produjo un error interno.";
     const statusCode = Number((error as { statusCode?: number })?.statusCode || 500);
     if (message.includes("UNIQUE constraint failed")) {
-      response.status(409).json({ code: "DUPLICATE", message: "Ya existe un registro con la misma clave única: código, año, número, RUC o correo." } satisfies ApiErrorResponse);
+      response.status(409).json({ code: "DUPLICATE", message: "Ya existe un registro con la misma combinación de empresa, versión, centro y cuenta." } satisfies ApiErrorResponse);
       return;
     }
     if (message.includes("CHECK constraint failed")) {

@@ -50,9 +50,9 @@ export function AppLayout() {
           <ContextSelect label="Empresa" value={companyId} onChange={setCompanyId} disabled={false} options={companies.map((item) => ({ id: item.id, label: item.commercial_name }))} />
           <ContextSelect label="Ejercicio" value={exerciseId} onChange={setExerciseId} disabled={!companyId} options={exercises.filter((item) => item.active).map((item) => ({ id: item.id, label: `${item.code} · ${item.budget_year}` }))} />
           <ContextSelect label="Periodo" value={periodId} onChange={setPeriodId} disabled={!exerciseId} options={periods.map((item) => ({ id: item.id, label: `${String(item.period_number).padStart(2, "0")} · ${item.name}${item.status === "CERRADO" ? " (cerrado)" : ""}` }))} />
-          <ContextSelect label="Versión" value={versionId} onChange={setVersionId} disabled={!exerciseId} options={versions.map((item) => ({ id: item.id, label: `${item.code} · ${item.name}` }))} />
+          <ContextSelect label="Versión" value={versionId} onChange={setVersionId} disabled={!exerciseId} options={versions.map((item) => ({ id: item.id, label: `${item.code} · ${item.version_type} · ${item.status}` }))} />
         </div>
-        <div className="local-mode"><strong>Fase 4 activa</strong><span>Importación de tablas maestras</span></div>
+        <div className="local-mode"><strong>Fase 5 activa</strong><span>Presupuesto original anual</span></div>
       </header>
       <main className="content"><Outlet /></main>
     </div>
