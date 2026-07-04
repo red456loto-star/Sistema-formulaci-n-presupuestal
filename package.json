@@ -1,6 +1,6 @@
 {
   "name": "presucontrol-empresarial",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Sistema Integral de Formulación, Control y Evaluación Presupuestal Empresarial",
   "main": "apps/desktop/dist/main.cjs",
@@ -15,12 +15,15 @@
     "build:api": "npm run build --workspace @presucontrol/api",
     "build:desktop": "npm run build --workspace @presucontrol/desktop",
     "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/frontend/tsconfig.json --noEmit",
-    "test": "npm run build:api && node --test tests/*.test.mjs",
+    "test": "npm run build:api && node --test tests/phase3.test.mjs tests/phase4.test.mjs",
     "verify": "npm run typecheck && npm test && npm run build",
     "desktop:dist": "npm run verify && electron-builder --win portable --x64",
     "start:api": "npm run start --workspace @presucontrol/api"
   },
-  "dependencies": { "better-sqlite3": "^12.2.0" },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "exceljs": "^4.4.0"
+  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.18",
