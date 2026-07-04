@@ -51,6 +51,15 @@ test("Fase 4 valida, confirma y conserva tablas maestras", async (context) => {
   });
   assert.equal(invalid.response.status, 400);
 
+  const companies = await json(`${server.url}/api/catalog/empresas`);
+  const demo = companies.body.find((item) => item.code === "DEMO");
+  assert.ok(demo);
+  const hierarchy = await json(`${server.url}/api/organization/hierarchy?company_id=${demo.id}`);
+  assert.equal(hierarchy.response.status, 200);
+  assert.ok(hierarchy.body.organizational.length >= 1);
+  assert.ok(hierarchy.body.organizational[0].centers.length >= 1);
+  assert.ok(hierarchy.body.organizational[0].centers[0].responsible_name);
+
   const history = await json(`${server.url}/api/import/history`);
   assert.ok(history.body.length >= 1);
   assert.equal(server.database.connection.prepare("SELECT name FROM schema_migrations WHERE version=5").get().name, "importacion_tablas_maestras_fase_4");
