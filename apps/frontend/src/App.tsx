@@ -9,9 +9,9 @@ import { StructurePage } from "./pages/phase2/StructurePage";
 import { ParametersPage } from "./pages/phase2/ParametersPage";
 import { PeriodsPage } from "./pages/phase3/PeriodsPage";
 import { VersionsPage } from "./pages/phase3/VersionsPage";
+import { ImportPage } from "./pages/phase4/ImportPage";
 
 const futureModules = [
-  ["/importacion", "Importación Excel", "Importación de tablas maestras desde archivos Excel."],
   ["/presupuesto-original", "Presupuesto original", "Presupuesto anual mensualizado y proyección anual de tres años."],
   ["/forecast", "Forecast", "Presupuesto revisado con valores reales y proyectados."],
   ["/presupuesto-maestro", "Presupuesto maestro", "Ventas, inventarios, compras, producción, costos, gastos e inversión."],
@@ -33,6 +33,7 @@ export default function App() {
           <Route path="/parametros" element={<ParametersPage />} />
           <Route path="/periodos" element={<PeriodsPage />} />
           <Route path="/versiones" element={<VersionsPage />} />
+          <Route path="/importacion" element={<ImportPage />} />
           {futureModules.map(([path, title, description]) => (
             <Route key={path} path={path} element={<ModulePage title={title} description={description} />} />
           ))}
