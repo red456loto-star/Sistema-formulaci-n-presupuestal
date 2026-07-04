@@ -2,6 +2,8 @@ import { ImportTarget } from "./catalog-specs";
 import { ExtractedRow } from "./workbook-extract";
 
 export type ValidationStatus = "VALIDO" | "OBSERVADO" | "RECHAZADO" | "EXCLUIDO";
+export type WriteAction = "CREADO" | "ACTUALIZADO" | "OMITIDO";
+export interface WriteResult { action: WriteAction; id?: number; }
 
 export interface ValidatedRow {
   row_number: number;
