@@ -6,6 +6,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./styles.css";
 import "./phase2-forms.css";
 import "./phase2-tree.css";
+import "./phase4-import.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
