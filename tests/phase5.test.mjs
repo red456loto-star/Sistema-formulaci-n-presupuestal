@@ -112,14 +112,22 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
   detail = await json(`${server.url}/api/budget-original/lines/${line.body.id}`);
   assert.deepEqual(detail.body.projections.map((item) => item.budgeted_value), [13200, 13860, 14553]);
 
-  const secondAccount = (await json(`${server.url}/api/catalog/cuentas?company_id=${demo.id}`)).body.find((item) => item.id !== account.id);
-  assert.ok(secondAccount);
+  const secondCenter = await post(server, "/api/catalog/centros", {
+    company_id: demo.id,
+    site_id: center.site_id,
+    responsible_id: responsible.id,
+    code: "ADM-2",
+    name: "Administración secundaria",
+    center_type: "APOYO",
+    active: true,
+  });
+  assert.equal(secondCenter.response.status, 201);
   const secondLine = await post(server, "/api/budget-original/lines", {
     company_id: demo.id,
     exercise_id: exercise.body.id,
     version_id: original.body.id,
-    center_id: center.id,
-    account_id: secondAccount.id,
+    center_id: secondCenter.body.id,
+    account_id: account.id,
     currency_id: pen.id,
     responsible_id: responsible.id,
   });
