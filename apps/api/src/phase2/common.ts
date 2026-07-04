@@ -1,12 +1,9 @@
-import type { NextFunction, Request, Response } from "express";
-import { z } from "zod";
-import { DatabaseManager, type SessionIdentity } from "../../../../packages/database/src/index";
-import type { ApiErrorResponse } from "../../../../packages/shared/src/index";
 
-export interface AuthenticatedRequest extends Request {
-  identity?: SessionIdentity;
-  authToken?: string;
-}
+import type { Request } from "express";
+import { z } from "zod";
+import { DatabaseManager } from "../../../../packages/database/src/index";
+
+export type LocalRequest = Request;
 
 export interface CatalogConfig {
   table: string;
@@ -28,62 +25,21 @@ export function normalizeActive(value: unknown) {
   return typeof value === "boolean" ? (value ? 1 : 0) : value;
 }
 
-export function isAdmin(identity: SessionIdentity) {
-  return identity.roles.includes("ADMINISTRADOR");
-}
-
-export function hasPermission(identity: SessionIdentity, permission: string) {
-  return isAdmin(identity) || identity.permissions.includes(permission);
-}
-
-export function requirePermission(permission: string) {
-  return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    if (!request.identity || !hasPermission(request.identity, permission)) {
-      response.status(403).json({ code: "FORBIDDEN", message: "No cuenta con permiso para realizar esta acción." } satisfies ApiErrorResponse);
-      return;
-    }
-    next();
-  };
-}
-
-export function authenticate(database: DatabaseManager) {
-  return (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    const authorization = request.headers.authorization;
-    const token = authorization?.startsWith("Bearer ") ? authorization.slice(7) : "";
-    const identity = token ? database.getIdentityByToken(token) : null;
-    if (!identity) {
-      response.status(401).json({ code: "UNAUTHORIZED", message: "Debe iniciar sesión para continuar." } satisfies ApiErrorResponse);
-      return;
-    }
-    request.identity = identity;
-    request.authToken = token;
-    next();
-  };
-}
-
-export function validateCompanyAccess(identity: SessionIdentity, companyId: number) {
-  if (!isAdmin(identity) && identity.companyId !== companyId) {
-    const error = new Error("No puede acceder a información de otra empresa.");
-    Object.assign(error, { statusCode: 403 });
-    throw error;
-  }
-}
-
-export function ensureActiveCompany(database: DatabaseManager, companyId: number) {
-  const company = database.connection.prepare("SELECT id FROM companies WHERE id = ? AND active = 1").get(companyId);
-  if (!company) {
-    const error = new Error("La empresa seleccionada no existe o se encuentra inactiva.");
+export function requireCompanyId(value: unknown) {
+  const companyId = Number(value);
+  if (!Number.isInteger(companyId) || companyId <= 0) {
+    const error = new Error("Seleccione una empresa para continuar.");
     Object.assign(error, { statusCode: 400 });
     throw error;
   }
+  return companyId;
 }
 
-export function ensureActiveRoles(database: DatabaseManager, roleIds: number[]) {
-  const uniqueIds = [...new Set(roleIds)];
-  const placeholders = uniqueIds.map(() => "?").join(",");
-  const rows = database.connection.prepare(`SELECT id FROM roles WHERE active = 1 AND id IN (${placeholders})`).all(...uniqueIds) as Array<{ id: number }>;
-  if (rows.length !== uniqueIds.length) {
-    const error = new Error("Uno o más roles seleccionados no existen o están inactivos.");
+export function ensureCompanyExists(database: DatabaseManager, companyId: number, activeOnly = false) {
+  const condition = activeOnly ? " AND active = 1" : "";
+  const company = database.connection.prepare(`SELECT id FROM companies WHERE id = ?${condition}`).get(companyId);
+  if (!company) {
+    const error = new Error(activeOnly ? "La empresa seleccionada no existe o se encuentra inactiva." : "La empresa seleccionada no existe.");
     Object.assign(error, { statusCode: 400 });
     throw error;
   }
@@ -102,9 +58,18 @@ export function ensureForeignScopes(database: DatabaseManager, config: CatalogCo
   }
 }
 
-export function audit(database: DatabaseManager, identity: SessionIdentity, action: string, entity: string, entityId: number | null, companyId: number | null, description: string, before?: unknown, after?: unknown) {
+export function audit(
+  database: DatabaseManager,
+  action: string,
+  entity: string,
+  entityId: number | null,
+  companyId: number | null,
+  description: string,
+  before?: unknown,
+  after?: unknown,
+) {
   database.connection.prepare(`INSERT INTO audit_events
-    (user_id, company_id, action, entity, entity_id, description, before_data, after_data, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(identity.id, companyId, action, entity, entityId, description, before ? JSON.stringify(before) : null, after ? JSON.stringify(after) : null, new Date().toISOString());
+    (company_id, action, entity, entity_id, description, before_data, after_data, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(companyId, action, entity, entityId, description, before ? JSON.stringify(before) : null, after ? JSON.stringify(after) : null, new Date().toISOString());
 }

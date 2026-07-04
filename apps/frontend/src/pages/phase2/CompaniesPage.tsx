@@ -1,6 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Building2, MapPin, UserRoundCog } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { useCatalog } from "../../lib/useCatalog";
 import { DataTable, Field, FormGrid, Message, Tabs } from "../../components/phase2/Ui";
@@ -12,7 +11,6 @@ type Currency = { id: number; code: string; name: string };
 type CatalogController<T extends { id: number }> = ReturnType<typeof useCatalog<T>>;
 
 export function CompaniesPage() {
-  const { hasPermission } = useAuth();
   const { companyId, setCompanyId, refreshCompanies } = useWorkspace();
   const [tab, setTab] = useState("Empresas");
   const [message, setMessage] = useState("");
@@ -45,9 +43,9 @@ export function CompaniesPage() {
       <div className="breadcrumb"><span>Organización</span><strong>{activeCompany?.commercial_name ?? "Todas las empresas"}</strong></div>
       <Tabs items={["Empresas", "Sedes", "Responsables"]} active={tab} onChange={setTab} />
       {message && <Message type={message.includes("correctamente") ? "success" : "danger"}>{message}</Message>}
-      {tab === "Empresas" && <CompanySection catalog={companies} currencies={currencies.rows} canCreate={hasPermission("EMPRESAS:CREAR")} onSelect={setCompanyId} onRun={run} />}
-      {tab === "Sedes" && <SiteSection catalog={sites} companyId={companyId} canCreate={hasPermission("EMPRESAS:CREAR")} onRun={run} />}
-      {tab === "Responsables" && <ResponsibleSection catalog={responsibles} companyId={companyId} canCreate={hasPermission("EMPRESAS:CREAR")} onRun={run} />}
+      {tab === "Empresas" && <CompanySection catalog={companies} currencies={currencies.rows} canCreate={true} onSelect={setCompanyId} onRun={run} />}
+      {tab === "Sedes" && <SiteSection catalog={sites} companyId={companyId} canCreate={true} onRun={run} />}
+      {tab === "Responsables" && <ResponsibleSection catalog={responsibles} companyId={companyId} canCreate={true} onRun={run} />}
     </div>
   );
 }

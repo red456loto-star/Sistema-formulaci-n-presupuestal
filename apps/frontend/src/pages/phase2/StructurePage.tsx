@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Building, FolderTree, Landmark, ListTree, WalletCards } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { apiRequest } from "../../lib/api";
 import { useCatalog } from "../../lib/useCatalog";
@@ -23,7 +22,6 @@ type CatalogController<T extends { id: number }> = ReturnType<typeof useCatalog<
 
 export function StructurePage() {
   const { companyId, company } = useWorkspace();
-  const { hasPermission } = useAuth();
   const [tab, setTab] = useState("Árbol jerárquico");
   const [message, setMessage] = useState("");
   const [hierarchy, setHierarchy] = useState<Hierarchy | null>(null);
@@ -62,10 +60,10 @@ export function StructurePage() {
     <Tabs items={["Árbol jerárquico", "Centros", "Grupos", "Elementos", "Cuentas"]} active={tab} onChange={setTab} />
     {message && <Message type={message.includes("correctamente") ? "success" : "danger"}>{message}</Message>}
     {tab === "Árbol jerárquico" && <HierarchyView hierarchy={hierarchy} />}
-    {tab === "Centros" && <CenterSection companyId={companyId} catalog={centers} sites={sites.rows} responsibles={responsibles.rows} canCreate={hasPermission("ESTRUCTURA:CREAR")} run={run} />}
-    {tab === "Grupos" && <GroupSection companyId={companyId} catalog={groups} canCreate={hasPermission("ESTRUCTURA:CREAR")} run={run} />}
-    {tab === "Elementos" && <ElementSection companyId={companyId} catalog={elements} groups={groups.rows} canCreate={hasPermission("ESTRUCTURA:CREAR")} run={run} />}
-    {tab === "Cuentas" && <AccountSection companyId={companyId} catalog={accounts} elements={elements.rows} groups={groups.rows} canCreate={hasPermission("ESTRUCTURA:CREAR")} run={run} />}
+    {tab === "Centros" && <CenterSection companyId={companyId} catalog={centers} sites={sites.rows} responsibles={responsibles.rows} canCreate={true} run={run} />}
+    {tab === "Grupos" && <GroupSection companyId={companyId} catalog={groups} canCreate={true} run={run} />}
+    {tab === "Elementos" && <ElementSection companyId={companyId} catalog={elements} groups={groups.rows} canCreate={true} run={run} />}
+    {tab === "Cuentas" && <AccountSection companyId={companyId} catalog={accounts} elements={elements.rows} groups={groups.rows} canCreate={true} run={run} />}
   </div>;
 }
 

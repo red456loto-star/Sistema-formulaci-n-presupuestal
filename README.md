@@ -1,44 +1,38 @@
+
 # PresuControl Empresarial
 
-Sistema Integral de Formulación, Control y Evaluación Presupuestal Empresarial.
+Aplicación de escritorio local para formulación, control y evaluación presupuestal empresarial.
 
-## Estado del desarrollo
+## Estado
 
 - **Fase 0:** análisis funcional y arquitectura.
-- **Fase 1:** React, API local, SQLite, Electron y navegación base.
-- **Fase 2:** autenticación, usuarios, roles, empresas y estructura presupuestal.
+- **Fase 1:** base técnica React, TypeScript, Node.js, SQLite y Electron.
+- **Fase 2 corregida:** empresas, responsables, centros, estructura presupuestal y tablas maestras.
 
-Repositorio: `red456loto-star/Sistema-formulaci-n-presupuestal`.
+## Acceso
 
-## Inicio rápido
+El ejecutable abre directamente el panel principal. El sistema no utiliza:
+
+- Login.
+- Cuentas de usuario.
+- Contraseñas.
+- Roles.
+- Permisos.
+- Sesiones ni tokens.
+
+Los responsables de centros son registros empresariales con nombre, cargo y correo; no son cuentas de acceso.
+
+## Verificación
 
 ```bash
 npm install
-npm run dev
-```
-
-Verificación técnica:
-
-```bash
 npm run verify
 ```
 
-Generación del ejecutable portable para Windows:
+## Ejecutable Windows
 
 ```bash
 npm run desktop:dist
 ```
 
-## Acceso inicial de demostración
-
-- Usuario: `admin`
-- La contraseña inicial se comunica al responsable de la instalación y debe cambiarse desde el sistema.
-- Los usuarios nuevos reciben una clave temporal local y tienen disponible el cambio de contraseña.
-
-Los datos incluidos son sintéticos y se utilizan únicamente para verificar el funcionamiento del aplicativo.
-
-Consulte:
-
-- `README_FASE_0.md`
-- `README_FASE_1.md`
-- `README_FASE_2.md`
+GitHub Actions también genera el ejecutable portátil de Windows.

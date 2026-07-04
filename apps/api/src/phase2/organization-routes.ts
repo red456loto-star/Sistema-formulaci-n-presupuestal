@@ -1,12 +1,11 @@
-import type { Express, Response } from "express";
+import type { Express, Request, Response } from "express";
 import { DatabaseManager } from "../../../../packages/database/src/index";
-import { requirePermission, type AuthenticatedRequest, validateCompanyAccess } from "./common";
+import { requireCompanyId } from "./common";
 
 export function registerOrganizationRoutes(app: Express, database: DatabaseManager) {
-  app.get("/api/organization/hierarchy", requirePermission("ESTRUCTURA:LEER"), (request: AuthenticatedRequest, response: Response) => {
-    const companyId = Number(request.query.company_id || request.identity!.companyId);
+  app.get("/api/organization/hierarchy", (request: Request, response: Response) => {
+    const companyId = requireCompanyId(request.query.company_id);
     if (!companyId) { response.status(400).json({ code: "COMPANY_REQUIRED", message: "Seleccione una empresa." }); return; }
-    validateCompanyAccess(request.identity!, companyId);
     const company = database.connection.prepare("SELECT id, code, commercial_name, legal_name FROM companies WHERE id = ?").get(companyId) as Record<string, unknown> | undefined;
     if (!company) { response.status(404).json({ code: "NOT_FOUND", message: "Empresa no encontrada." }); return; }
 
@@ -52,14 +51,4 @@ export function registerOrganizationRoutes(app: Express, database: DatabaseManag
     });
   });
 
-  app.get("/api/audit", requirePermission("AUDITORIA:LEER"), (request: AuthenticatedRequest, response: Response) => {
-    const companyId = request.query.company_id ? Number(request.query.company_id) : request.identity!.companyId;
-    if (companyId) validateCompanyAccess(request.identity!, companyId);
-    const limit = Math.min(Math.max(Number(request.query.limit || 100), 1), 500);
-    const where = companyId ? "WHERE a.company_id = ? OR a.company_id IS NULL" : "";
-    const rows = database.connection.prepare(`SELECT a.*, u.full_name AS user_name, c.commercial_name AS company_name
-      FROM audit_events a LEFT JOIN users u ON u.id = a.user_id LEFT JOIN companies c ON c.id = a.company_id
-      ${where} ORDER BY a.created_at DESC LIMIT ?`).all(...(companyId ? [companyId, limit] : [limit]));
-    response.json(rows);
-  });
 }
