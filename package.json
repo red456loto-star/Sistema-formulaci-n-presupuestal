@@ -1,6 +1,6 @@
 {
   "name": "presucontrol-empresarial",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Sistema Integral de Formulación, Control y Evaluación Presupuestal Empresarial",
   "main": "apps/desktop/dist/main.cjs",
