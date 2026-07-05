@@ -20,6 +20,8 @@ import { ensurePhase4Schema } from "./phase4/schema";
 import { registerImportRoutes } from "./phase4/import-routes";
 import { ensurePhase5Schema } from "./phase5/schema";
 import { registerOriginalBudgetRoutes } from "./phase5/routes";
+import { ensurePhase6Schema } from "./phase6/schema";
+import { registerMasterBudgetRoutes } from "./phase6/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -44,6 +46,7 @@ export function createApp(options: StartServerOptions = {}) {
   const database = new DatabaseManager(dataDir);
   ensurePhase4Schema(database);
   ensurePhase5Schema(database);
+  ensurePhase6Schema(database);
   const app = express();
 
   app.disable("x-powered-by");
@@ -56,7 +59,7 @@ export function createApp(options: StartServerOptions = {}) {
   });
 
   app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.5.1", phase: 5, accessMode: "directo",
+    status: "ok", service: "presucontrol-api", version: "0.6.0", phase: 6, accessMode: "directo",
     timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
   }));
 
@@ -73,7 +76,14 @@ export function createApp(options: StartServerOptions = {}) {
       periodos: count("budget_periods"),
       importaciones: count("import_batches"),
       lineas_presupuesto_original: count("budget_original_lines"),
-      mensaje: "Fase 5: presupuesto original mensual, total anual y tres años de proyección, sin login.",
+      productos_materiales: count("master_items"),
+      lineas_ventas: count("master_sales"),
+      lineas_inventarios: count("master_inventories"),
+      lineas_compras: count("master_purchases"),
+      lineas_costos: count("master_costs"),
+      lineas_gastos: count("master_expenses"),
+      lineas_inversiones: count("master_investments"),
+      mensaje: "Fase 6: presupuesto maestro y estados financieros presupuestados, sin login.",
     });
   });
 
@@ -87,6 +97,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerVersionRoutes(app, database);
   registerImportRoutes(app, database);
   registerOriginalBudgetRoutes(app, database);
+  registerMasterBudgetRoutes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
@@ -112,7 +123,7 @@ export function createApp(options: StartServerOptions = {}) {
     const message = error instanceof Error ? error.message : "Se produjo un error interno.";
     const statusCode = Number((error as { statusCode?: number })?.statusCode || 500);
     if (message.includes("UNIQUE constraint failed")) {
-      response.status(409).json({ code: "DUPLICATE", message: "Ya existe un registro con la misma combinación de empresa, versión, centro y cuenta." } satisfies ApiErrorResponse);
+      response.status(409).json({ code: "DUPLICATE", message: "Ya existe un registro con la misma combinación dentro del contexto activo." } satisfies ApiErrorResponse);
       return;
     }
     if (message.includes("CHECK constraint failed")) {

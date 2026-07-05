@@ -10,6 +10,7 @@ Aplicación de escritorio local para formulación, control y evaluación presupu
 - **Fase 3:** ejercicios, doce periodos mensuales, tres años de proyección y versiones original/forecast.
 - **Fase 4:** importación flexible de tablas maestras desde Excel.
 - **Fase 5:** presupuesto original mensual, total anual, valor real diferenciado y proyección anual de tres años.
+- **Fase 6:** presupuesto maestro integrado, estados financieros presupuestados y exportación Excel.
 
 ## Acceso
 
@@ -21,19 +22,22 @@ Los responsables son registros empresariales con nombre, cargo y correo; no son 
 
 La barra superior permite seleccionar empresa, ejercicio, periodo y versión. Los selectores son dependientes y conservan el contexto localmente.
 
-La pantalla **Presupuesto original** requiere una versión de tipo `ORIGINAL` y permite:
+La pantalla **Presupuesto maestro** requiere una versión anual de tipo `ORIGINAL` y contiene:
 
-- Registrar líneas por centro y cuenta.
-- Capturar enero a diciembre.
-- Diferenciar presupuesto y valor real.
-- Calcular automáticamente el total anual.
-- Distribuir un total anual entre periodos abiertos.
-- Copiar valores dentro de la misma versión.
-- Proyectar los tres años posteriores.
-- Filtrar por centro, grupo, elemento y cuenta.
-- Aprobar mediante responsable y bloquear la edición.
+- Presupuesto de ventas.
+- Presupuesto de inventarios.
+- Presupuesto de compras.
+- Presupuesto de producción calculado.
+- Materiales, mano de obra y costos indirectos por centro productivo.
+- Gastos por centro, grupo, elemento y cuenta.
+- Presupuesto de inversiones y depreciación.
+- Estado de resultados presupuestado.
+- Estado de situación financiera presupuestado.
+- Exportación Excel de cada componente y del consolidado.
 
-La documentación detallada está en `README_FASE_5.md`.
+Los estados financieros se derivan de los componentes y de los saldos iniciales estrictamente necesarios; no se capturan como cifras finales aisladas.
+
+La documentación detallada está en `README_FASE_6.md`.
 
 ## Verificación
 
