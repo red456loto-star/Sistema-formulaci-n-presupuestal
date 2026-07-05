@@ -22,7 +22,7 @@ function patch(server, route, body) {
   return json(`${server.url}${route}`, { method: "PATCH", headers, body: JSON.stringify(body) });
 }
 
-test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo", async (context) => {
+test("Fase 5 registra meses, totales, proyecciones, variación comparable, aprobación y bloqueo", async (context) => {
   const dataDir = await mkdtemp(path.join(os.tmpdir(), "presucontrol-phase5-"));
   let server = await startServer({ port: 0, dataDir });
   context.after(async () => {
@@ -32,7 +32,7 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
 
   const health = await json(`${server.url}/api/health`);
   assert.equal(health.body.phase, 5);
-  assert.equal(health.body.version, "0.5.0");
+  assert.equal(health.body.version, "0.5.1");
   assert.equal(health.body.accessMode, "directo");
   assert.equal((await post(server, "/api/auth/login", {})).response.status, 404);
 
@@ -84,6 +84,8 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
   assert.equal(detail.body.projections.length, 3);
   assert.equal(detail.body.annual_budgeted, 0);
   assert.equal(detail.body.annual_real, null);
+  assert.equal(detail.body.annual_comparable_budget, null);
+  assert.equal(detail.body.annual_variance, null);
 
   const monthly = detail.body.monthly_values.map((item, index) => ({
     period_id: item.period_id,
@@ -92,22 +94,34 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
   }));
   const edited = await patch(server, `/api/budget-original/lines/${line.body.id}`, {
     monthly_values: monthly,
-    projections: detail.body.projections.map((item, index) => ({ projection_year_id: item.projection_year_id, budgeted_value: 10000 + index * 1000, real_value: null })),
+    projections: detail.body.projections.map((item, index) => ({
+      projection_year_id: item.projection_year_id,
+      budgeted_value: 10000 + index * 1000,
+      real_value: null,
+    })),
   });
   assert.equal(edited.response.status, 200);
 
   detail = await json(`${server.url}/api/budget-original/lines/${line.body.id}`);
   assert.equal(detail.body.annual_budgeted, 7800);
   assert.equal(detail.body.annual_real, 90);
-  assert.equal(detail.body.annual_variance, -7710);
+  assert.equal(detail.body.annual_comparable_budget, 100);
+  assert.equal(detail.body.annual_variance, -10);
 
-  const distributed = await post(server, `/api/budget-original/lines/${line.body.id}/distribute`, { annual_total: 12000 });
+  const distributed = await post(server, `/api/budget-original/lines/${line.body.id}/distribute`, {
+    annual_total: 12000,
+  });
   assert.equal(distributed.response.status, 200);
   detail = await json(`${server.url}/api/budget-original/lines/${line.body.id}`);
   assert.equal(detail.body.annual_budgeted, 12000);
   assert.equal(detail.body.monthly_values.reduce((sum, item) => sum + item.budgeted_value, 0), 12000);
+  assert.equal(detail.body.annual_real, 90);
+  assert.equal(detail.body.annual_comparable_budget, 1000);
+  assert.equal(detail.body.annual_variance, -910);
 
-  const projected = await post(server, `/api/budget-original/lines/${line.body.id}/project`, { rates: [10, 5, 5] });
+  const projected = await post(server, `/api/budget-original/lines/${line.body.id}/project`, {
+    rates: [10, 5, 5],
+  });
   assert.equal(projected.response.status, 200);
   detail = await json(`${server.url}/api/budget-original/lines/${line.body.id}`);
   assert.deepEqual(detail.body.projections.map((item) => item.budgeted_value), [13200, 13860, 14553]);
@@ -122,6 +136,7 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
     active: true,
   });
   assert.equal(secondCenter.response.status, 201);
+
   const secondLine = await post(server, "/api/budget-original/lines", {
     company_id: demo.id,
     exercise_id: exercise.body.id,
@@ -132,15 +147,25 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
     responsible_id: responsible.id,
   });
   assert.equal(secondLine.response.status, 201);
-  const copied = await post(server, `/api/budget-original/lines/${secondLine.body.id}/copy`, { source_line_id: line.body.id, include_real: false });
+
+  const copied = await post(server, `/api/budget-original/lines/${secondLine.body.id}/copy`, {
+    source_line_id: line.body.id,
+    include_real: false,
+  });
   assert.equal(copied.response.status, 200);
   const copiedDetail = await json(`${server.url}/api/budget-original/lines/${secondLine.body.id}`);
   assert.equal(copiedDetail.body.annual_budgeted, 12000);
   assert.equal(copiedDetail.body.annual_real, null);
+  assert.equal(copiedDetail.body.annual_comparable_budget, null);
+  assert.equal(copiedDetail.body.annual_variance, null);
 
   const periods = await json(`${server.url}/api/catalog/periodos?company_id=${demo.id}&exercise_id=${exercise.body.id}`);
-  const closed = await post(server, `/api/catalog/periodos/${periods.body[0].id}/cerrar`, { responsible_id: responsible.id, notes: "Cierre de prueba" });
+  const closed = await post(server, `/api/catalog/periodos/${periods.body[0].id}/cerrar`, {
+    responsible_id: responsible.id,
+    notes: "Cierre de prueba",
+  });
   assert.equal(closed.response.status, 200);
+
   const blockedPeriod = await patch(server, `/api/budget-original/lines/${line.body.id}`, {
     monthly_values: [{ period_id: periods.body[0].id, budgeted_value: 9999, real_value: null }],
   });
@@ -148,6 +173,10 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
 
   const summary = await json(`${server.url}/api/budget-original/summary?company_id=${demo.id}&exercise_id=${exercise.body.id}&version_id=${original.body.id}`);
   assert.equal(summary.body.line_count, 2);
+  assert.equal(summary.body.total_budgeted, 24000);
+  assert.equal(summary.body.total_real, 90);
+  assert.equal(summary.body.comparable_budget, 1000);
+  assert.equal(summary.body.variance, -910);
   assert.equal(summary.body.can_approve, true);
 
   const approved = await post(server, "/api/budget-original/approve", {
@@ -159,7 +188,9 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
   });
   assert.equal(approved.response.status, 200);
 
-  const blockedVersion = await patch(server, `/api/budget-original/lines/${line.body.id}`, { comment: "No debe cambiar" });
+  const blockedVersion = await patch(server, `/api/budget-original/lines/${line.body.id}`, {
+    comment: "No debe cambiar",
+  });
   assert.equal(blockedVersion.response.status, 409);
 
   const otherCompany = await post(server, "/api/catalog/empresas", {
@@ -171,9 +202,30 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
     currency_id: pen.id,
     active: true,
   });
-  const otherSite = await post(server, "/api/catalog/sedes", { company_id: otherCompany.body.id, code: "OTR-S", name: "Otra sede", country: "Perú", active: true });
-  const otherResponsible = await post(server, "/api/catalog/responsables", { company_id: otherCompany.body.id, code: "OTR-R", full_name: "Otra persona", position: "Jefatura", email: "otra@empresa.local", active: true });
-  const otherCenter = await post(server, "/api/catalog/centros", { company_id: otherCompany.body.id, site_id: otherSite.body.id, responsible_id: otherResponsible.body.id, code: "OTR-C", name: "Otro centro", center_type: "APOYO", active: true });
+  const otherSite = await post(server, "/api/catalog/sedes", {
+    company_id: otherCompany.body.id,
+    code: "OTR-S",
+    name: "Otra sede",
+    country: "Perú",
+    active: true,
+  });
+  const otherResponsible = await post(server, "/api/catalog/responsables", {
+    company_id: otherCompany.body.id,
+    code: "OTR-R",
+    full_name: "Otra persona",
+    position: "Jefatura",
+    email: "otra@empresa.local",
+    active: true,
+  });
+  const otherCenter = await post(server, "/api/catalog/centros", {
+    company_id: otherCompany.body.id,
+    site_id: otherSite.body.id,
+    responsible_id: otherResponsible.body.id,
+    code: "OTR-C",
+    name: "Otro centro",
+    center_type: "APOYO",
+    active: true,
+  });
   const mixed = await post(server, "/api/budget-original/lines", {
     company_id: demo.id,
     exercise_id: exercise.body.id,
@@ -184,11 +236,16 @@ test("Fase 5 registra meses, totales, proyecciones, copia, aprobación y bloqueo
   });
   assert.equal(mixed.response.status, 409);
 
-  assert.equal(server.database.connection.prepare("SELECT name FROM schema_migrations WHERE version=6").get().name, "presupuesto_original_fase_5");
+  assert.equal(
+    server.database.connection.prepare("SELECT name FROM schema_migrations WHERE version=6").get().name,
+    "presupuesto_original_fase_5",
+  );
 
   await server.close();
   server = await startServer({ port: 0, dataDir });
   const persisted = await json(`${server.url}/api/budget-original/lines/${line.body.id}`);
   assert.equal(persisted.body.annual_budgeted, 12000);
+  assert.equal(persisted.body.annual_comparable_budget, 1000);
+  assert.equal(persisted.body.annual_variance, -910);
   assert.equal(persisted.body.projections.length, 3);
 });

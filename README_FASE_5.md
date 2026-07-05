@@ -40,7 +40,14 @@ Por cada línea:
 - Valor real mensual opcional.
 - Tres valores anuales proyectados.
 
-El valor real puede permanecer vacío. La interfaz diferencia claramente el monto presupuestado, el real y la variación `real - presupuesto`.
+El valor real puede permanecer vacío. La interfaz diferencia claramente:
+
+- Presupuesto anual: suma de enero a diciembre.
+- Real registrado: suma de los meses que contienen valor real.
+- Presupuesto comparable: presupuesto correspondiente únicamente a los meses que contienen valor real.
+- Variación comparable: `real registrado - presupuesto comparable`.
+
+Este criterio evita comparar, por ejemplo, el real disponible solo hasta enero contra el presupuesto completo de enero a diciembre.
 
 ## Operaciones
 
@@ -71,6 +78,7 @@ El valor real puede permanecer vacío. La interfaz diferencia claramente el mont
 - Las versiones aprobadas, cerradas o reemplazadas son de solo consulta.
 - La copia de valores no puede mezclar empresas, ejercicios ni versiones.
 - La aprobación exige al menos una línea completa.
+- Una variación total solo se presenta cuando existe información real; se compara contra el presupuesto de esos mismos meses.
 
 ## Base de datos
 
@@ -80,7 +88,7 @@ La migración 6 incorpora:
 - `budget_original_monthly_values`.
 - `budget_original_projections`.
 
-El total anual no se almacena como un valor independiente: se deriva de la suma mensual para evitar inconsistencias.
+El total anual, el presupuesto comparable y la variación no se almacenan como valores independientes: se derivan de los registros mensuales para evitar inconsistencias.
 
 ## API local
 
@@ -104,7 +112,10 @@ La suite comprueba:
 - Registro de una línea y generación de doce meses.
 - Generación de tres años proyectados.
 - Captura de presupuesto y valor real.
-- Total anual y variación.
+- Total anual.
+- Presupuesto comparable cuando el real es parcial.
+- Variación comparable.
+- Ausencia de variación cuando no existe valor real.
 - Distribución del total anual.
 - Proyección con tasas.
 - Copia de valores.
@@ -117,6 +128,10 @@ La suite comprueba:
 ```bash
 npm run verify
 ```
+
+## Versión corregida
+
+La corrección del cálculo comparable se publica como versión `0.5.1` para distinguirla del ejecutable inicial `0.5.0`.
 
 ## Fuera de alcance
 
