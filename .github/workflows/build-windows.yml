@@ -39,7 +39,19 @@ jobs:
         run: npm install --no-audit --no-fund --prefer-online --silent
 
       - name: Typecheck and integration tests
-        run: npm run verify
+        shell: pwsh
+        run: |
+          npm run verify 2>&1 | Tee-Object -FilePath verify.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload verification log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PresuControl-Verification-Log
+          path: verify.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Build portable Windows application
         env:
