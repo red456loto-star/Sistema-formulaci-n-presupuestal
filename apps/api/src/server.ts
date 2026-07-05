@@ -56,7 +56,7 @@ export function createApp(options: StartServerOptions = {}) {
   });
 
   app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.5.0", phase: 5, accessMode: "directo",
+    status: "ok", service: "presucontrol-api", version: "0.5.1", phase: 5, accessMode: "directo",
     timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
   }));
 
