@@ -40,6 +40,8 @@ export function ensurePhase6Schema(database: DatabaseManager) {
       version_id INTEGER NOT NULL REFERENCES budget_versions(id) ON DELETE RESTRICT,
       period_id INTEGER NOT NULL REFERENCES budget_periods(id) ON DELETE RESTRICT,
       item_id INTEGER NOT NULL REFERENCES master_items(id) ON DELETE RESTRICT,
+      center_id INTEGER NOT NULL REFERENCES activity_centers(id) ON DELETE RESTRICT,
+      account_id INTEGER NOT NULL REFERENCES budget_accounts(id) ON DELETE RESTRICT,
       initial_quantity REAL NOT NULL DEFAULT 0 CHECK(initial_quantity >= 0),
       entries_quantity REAL NOT NULL DEFAULT 0 CHECK(entries_quantity >= 0),
       exits_quantity REAL NOT NULL DEFAULT 0 CHECK(exits_quantity >= 0),
@@ -48,7 +50,7 @@ export function ensurePhase6Schema(database: DatabaseManager) {
       comment TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
-      UNIQUE(version_id, period_id, item_id)
+      UNIQUE(version_id, period_id, item_id, center_id, account_id)
     )`);
 
     database.connection.exec(`CREATE TABLE IF NOT EXISTS master_purchases (
@@ -143,7 +145,7 @@ export function ensurePhase6Schema(database: DatabaseManager) {
     )`);
 
     database.connection.exec("CREATE INDEX IF NOT EXISTS idx_master_sales_context ON master_sales(company_id,exercise_id,version_id,period_id)");
-    database.connection.exec("CREATE INDEX IF NOT EXISTS idx_master_inventory_context ON master_inventories(company_id,exercise_id,version_id,period_id)");
+    database.connection.exec("CREATE INDEX IF NOT EXISTS idx_master_inventory_context ON master_inventories(company_id,exercise_id,version_id,period_id,center_id)");
     database.connection.exec("CREATE INDEX IF NOT EXISTS idx_master_purchases_context ON master_purchases(company_id,exercise_id,version_id,period_id)");
     database.connection.exec("CREATE INDEX IF NOT EXISTS idx_master_costs_context ON master_costs(company_id,exercise_id,version_id,period_id,center_id)");
     database.connection.exec("CREATE INDEX IF NOT EXISTS idx_master_expenses_context ON master_expenses(company_id,exercise_id,version_id,period_id,center_id)");
