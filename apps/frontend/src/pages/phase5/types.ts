@@ -94,6 +94,7 @@ export interface OriginalBudgetLine {
   source_text?: string | null;
   annual_budgeted: number;
   annual_real: number | null;
+  annual_comparable_budget: number | null;
   annual_variance: number | null;
   complete: boolean;
   monthly_values: MonthlyValue[];
@@ -104,6 +105,7 @@ export interface OriginalSummary {
   line_count: number;
   total_budgeted: number;
   total_real: number | null;
+  comparable_budget: number | null;
   variance: number | null;
   complete_lines: number;
   can_approve: boolean;
