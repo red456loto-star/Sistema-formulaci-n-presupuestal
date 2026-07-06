@@ -76,6 +76,8 @@ export interface ImportPreview {
 
 export interface ForecastListItem {
   id: number;
+  company_id?: number;
+  exercise_id?: number;
   code: string;
   name: string;
   status: "BORRADOR" | "APROBADO" | "CERRADO" | "REEMPLAZADO";
@@ -83,11 +85,14 @@ export interface ForecastListItem {
   revision_number: number;
   original_version_id: number;
   source_version_code: string;
+  source_version_name?: string;
   cutoff_period_number: number;
   cutoff_period_name: string;
+  responsible_id?: number | null;
   responsible_name?: string | null;
   observation?: string | null;
   created_at: string;
+  approved_at?: string | null;
 }
 
 export interface ForecastLine {
