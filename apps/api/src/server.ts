@@ -24,6 +24,9 @@ import { ensurePhase6Schema } from "./phase6/schema";
 import { registerMasterBudgetRoutes } from "./phase6/routes";
 import { ensurePhase7Schema } from "./phase7/schema";
 import { registerPhase7Routes } from "./phase7/routes";
+import { ensurePhase8Schema } from "./phase8/schema";
+import { registerFinancialAnalysisContextGuard } from "./phase8/context-guard";
+import { registerFinancialAnalysisRoutes } from "./phase8/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -50,6 +53,7 @@ export function createApp(options: StartServerOptions = {}) {
   ensurePhase5Schema(database);
   ensurePhase6Schema(database);
   ensurePhase7Schema(database);
+  ensurePhase8Schema(database);
   const app = express();
 
   app.disable("x-powered-by");
@@ -62,7 +66,7 @@ export function createApp(options: StartServerOptions = {}) {
   });
 
   app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.7.0", phase: 7, accessMode: "directo",
+    status: "ok", service: "presucontrol-api", version: "0.8.0", phase: 8, accessMode: "directo",
     timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
   }));
 
@@ -89,7 +93,9 @@ export function createApp(options: StartServerOptions = {}) {
       datos_reales: count("actual_values"),
       versiones_forecast: count("forecast_profiles"),
       lineas_forecast: count("forecast_values"),
-      mensaje: "Fase 7: información real y múltiples versiones forecast, sin login.",
+      clasificaciones_financieras: count("financial_account_mappings"),
+      supuestos_analisis: count("financial_analysis_assumptions"),
+      mensaje: "Fase 8: estados financieros, análisis vertical y horizontal, ratios, Dupont y EVA, sin login.",
     });
   });
 
@@ -105,6 +111,8 @@ export function createApp(options: StartServerOptions = {}) {
   registerOriginalBudgetRoutes(app, database);
   registerMasterBudgetRoutes(app, database);
   registerPhase7Routes(app, database);
+  registerFinancialAnalysisContextGuard(app, database);
+  registerFinancialAnalysisRoutes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
@@ -130,7 +138,7 @@ export function createApp(options: StartServerOptions = {}) {
     const message = error instanceof Error ? error.message : "Se produjo un error interno.";
     const statusCode = Number((error as { statusCode?: number })?.statusCode || 500);
     if (message.includes("UNIQUE constraint failed")) {
-      response.status(409).json({ code: "DUPLICATE", message: "Ya existe información para la misma empresa, versión, periodo, centro, cuenta y tipo de presupuesto." } satisfies ApiErrorResponse);
+      response.status(409).json({ code: "DUPLICATE", message: "Ya existe un registro con la misma combinación dentro del contexto activo." } satisfies ApiErrorResponse);
       return;
     }
     if (message.includes("CHECK constraint failed")) {

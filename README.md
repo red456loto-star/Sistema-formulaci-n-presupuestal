@@ -12,6 +12,7 @@ Aplicación de escritorio local para formulación, control y evaluación presupu
 - **Fase 5:** presupuesto original mensual, total anual, valor real diferenciado y proyección anual de tres años.
 - **Fase 6:** presupuesto maestro integrado, estados financieros presupuestados y exportación Excel.
 - **Fase 7:** información real documentada, importación Excel y múltiples revisiones forecast por mes de corte.
+- **Fase 8:** estados financieros comparables, análisis vertical y horizontal, ratios, Dupont y EVA.
 
 ## Acceso
 
@@ -19,35 +20,32 @@ El ejecutable abre directamente el panel principal. El sistema no utiliza login,
 
 Los responsables son registros empresariales con nombre, cargo y correo; no son cuentas de acceso.
 
-## Contexto presupuestal
+## Análisis financiero
 
-La barra superior permite seleccionar empresa, ejercicio, periodo y versión. Los selectores son dependientes y conservan el contexto localmente.
+Las pantallas **Estados financieros** y **Análisis** permiten trabajar con:
 
-### Información real
+- Presupuesto original.
+- Forecast.
+- Información real.
+- Periodos mensuales o total anual.
+- Versiones y ejercicios de una misma empresa.
 
-La pantalla **Información real** permite registrar o importar valores por empresa, ejercicio, versión original, periodo, centro, cuenta y tipo de presupuesto. Cada registro conserva:
+El sistema genera:
 
-- Valor presupuestado.
-- Valor real.
-- Clasificación de la fuente.
-- Fuente o referencia.
-- Periodo y fecha de la fuente.
-- Responsable y comentario.
+- Estado de resultados.
+- Estado de situación financiera.
+- Análisis vertical.
+- Análisis horizontal.
+- Ratios de liquidez, gestión, solvencia y rentabilidad.
+- Análisis Dupont.
+- EVA.
+- Exportación Excel con estados, indicadores, fuentes y supuestos.
 
-Los datos se distinguen como reales publicados, reales internos, derivados o demostrativos. El sistema no atribuye datos sintéticos a una empresa real.
+Para forecast e información real, las cuentas se clasifican explícitamente como ventas, costos, gastos, activos, pasivos, patrimonio o partidas excluidas. Los roles de efectivo, cuentas por cobrar e inventarios se identifican por separado para los ratios.
 
-### Forecast
+Los supuestos necesarios para impuesto y EVA son visibles, editables y documentados. Una variable faltante permanece como no disponible; el sistema no inventa valores.
 
-La pantalla **Forecast** crea una revisión vinculada a una versión original aprobada o cerrada:
-
-```text
-Meses hasta el corte = información real
-Meses posteriores al corte = proyección forecast
-```
-
-Cada revisión registra código, número de revisión, mes de corte, responsable, observación, estado y fecha. Los meses reales quedan protegidos y una versión aprobada queda bloqueada.
-
-La documentación detallada está en `README_FASE_7.md`.
+La documentación detallada está en `README_FASE_8.md`.
 
 ## Verificación
 
