@@ -40,8 +40,8 @@ test("Fase 7 registra/importa reales y crea múltiples forecast con corte, aprob
   });
 
   const health = await get(server, "/api/health");
-  assert.equal(health.body.phase, 7);
-  assert.equal(health.body.version, "0.7.0");
+  assert.ok(health.body.phase >= 7);
+  assert.match(health.body.version, /^0\.(?:7|8)\./);
   assert.equal(health.body.accessMode, "directo");
   assert.equal((await post(server, "/api/auth/login", {})).response.status, 404);
 
