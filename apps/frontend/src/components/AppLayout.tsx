@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
-  BarChart3, BriefcaseBusiness, CalendarRange, ChartNoAxesCombined, CircleDollarSign, FileSpreadsheet,
-  Import, LayoutDashboard, Lightbulb, Mail, Menu, PanelLeftClose, PanelLeftOpen, SlidersHorizontal,
-  Target, TrendingUp, X,
+  BarChart3, BriefcaseBusiness, CalendarRange, ChartNoAxesCombined, CircleDollarSign, DatabaseZap,
+  FileSpreadsheet, Import, LayoutDashboard, Lightbulb, Mail, Menu, PanelLeftClose, PanelLeftOpen,
+  SlidersHorizontal, Target, TrendingUp, X,
 } from "lucide-react";
 import { useWorkspace } from "../context/WorkspaceContext";
 
@@ -16,6 +16,7 @@ const navigation = [
   { to: "/versiones", label: "Versiones", icon: FileSpreadsheet },
   { to: "/importacion", label: "Importación Excel", icon: Import },
   { to: "/presupuesto-original", label: "Presupuesto original", icon: FileSpreadsheet },
+  { to: "/informacion-real", label: "Información real", icon: DatabaseZap },
   { to: "/forecast", label: "Forecast", icon: TrendingUp },
   { to: "/presupuesto-maestro", label: "Presupuesto maestro", icon: CircleDollarSign },
   { to: "/estados-financieros", label: "Estados financieros", icon: BarChart3 },
@@ -52,7 +53,7 @@ export function AppLayout() {
           <ContextSelect label="Periodo" value={periodId} onChange={setPeriodId} disabled={!exerciseId} options={periods.map((item) => ({ id: item.id, label: `${String(item.period_number).padStart(2, "0")} · ${item.name}${item.status === "CERRADO" ? " (cerrado)" : ""}` }))} />
           <ContextSelect label="Versión" value={versionId} onChange={setVersionId} disabled={!exerciseId} options={versions.map((item) => ({ id: item.id, label: `${item.code} · ${item.version_type} · ${item.status}` }))} />
         </div>
-        <div className="local-mode"><strong>Fase 6 activa</strong><span>Presupuesto maestro integrado</span></div>
+        <div className="local-mode"><strong>Fase 7 activa</strong><span>Información real y forecast</span></div>
       </header>
       <main className="content"><Outlet /></main>
     </div>
