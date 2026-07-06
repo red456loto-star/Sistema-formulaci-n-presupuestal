@@ -21,10 +21,7 @@ const finiteNumber = z.coerce.number().finite();
 const budgetType = z.enum(["PRESUPUESTO_ORIGINAL","VENTAS","INVENTARIOS","COMPRAS","PRODUCCION","COSTOS","GASTOS","INVERSIONES","RESULTADOS","SITUACION_FINANCIERA"]);
 const sourceType = z.enum(["REAL_PUBLICADO","REAL_INTERNO","DERIVADO","DEMOSTRATIVO"]);
 
-const actualSchema = z.object({
-  company_id: positiveId,
-  exercise_id: positiveId,
-  original_version_id: positiveId,
+const actualRowFields = {
   period_id: positiveId,
   center_id: positiveId,
   account_id: positiveId,
@@ -38,7 +35,15 @@ const actualSchema = z.object({
   responsible_id: positiveId.optional().nullable(),
   comment: z.string().trim().max(1000).optional().nullable(),
   registered_at: z.string().trim().max(40).optional(),
+};
+
+const actualSchema = z.object({
+  company_id: positiveId,
+  exercise_id: positiveId,
+  original_version_id: positiveId,
+  ...actualRowFields,
 });
+const importActualRowSchema = z.object(actualRowFields);
 
 const importInspectSchema = z.object({
   company_id: positiveId,
@@ -56,7 +61,7 @@ const importConfirmSchema = z.object({
   file_name: z.string().trim().min(1).max(255),
   sheet_name: z.string().trim().min(1).max(120),
   operator_text: z.string().trim().max(160).optional().nullable(),
-  rows: z.array(actualSchema.omit({ company_id: true, exercise_id: true, original_version_id: true })).min(1).max(5000),
+  rows: z.array(importActualRowSchema).min(1).max(5000),
 });
 
 type ActualInput = z.infer<typeof actualSchema>;
@@ -87,7 +92,7 @@ function validateActual(database: DatabaseManager, input: ActualInput, editableP
 
 function listActuals(database: DatabaseManager, companyId: number, exerciseId: number, originalVersionId: number) {
   getPhase7Context(database, companyId, exerciseId, originalVersionId);
-  return database.connection.prepare(`SELECT av.*,
+  const rows = database.connection.prepare(`SELECT av.*,
     p.period_number,p.name period_name,p.status period_status,
     c.code center_code,c.name center_name,
     a.code account_code,a.name account_name,a.nature account_nature,
@@ -102,11 +107,11 @@ function listActuals(database: DatabaseManager, companyId: number, exerciseId: n
     JOIN budget_groups g ON g.id=e.group_id
     LEFT JOIN responsibles r ON r.id=av.responsible_id
     WHERE av.company_id=? AND av.exercise_id=? AND av.original_version_id=?
-    ORDER BY p.period_number,c.code,a.code,av.budget_type`).all(companyId, exerciseId, originalVersionId)
-    .map((row: Record<string, unknown>) => ({
-      ...row,
-      variance: roundAmount(Number(row.actual_value) - Number(row.budgeted_value)),
-    }));
+    ORDER BY p.period_number,c.code,a.code,av.budget_type`).all(companyId, exerciseId, originalVersionId) as Array<Record<string, unknown>>;
+  return rows.map((row) => ({
+    ...row,
+    variance: roundAmount(Number(row.actual_value) - Number(row.budgeted_value)),
+  }));
 }
 
 function normalizeHeader(value: string) {
@@ -307,7 +312,12 @@ export function registerActualRoutes(app: Express, database: DatabaseManager) {
     let created = 0;
     database.connection.transaction(() => {
       for (const row of input.rows) {
-        const complete: ActualInput = { ...row, company_id: context.companyId, exercise_id: context.exerciseId, original_version_id: context.originalVersionId };
+        const complete = actualSchema.parse({
+          ...row,
+          company_id: context.companyId,
+          exercise_id: context.exerciseId,
+          original_version_id: context.originalVersionId,
+        });
         const { budgetedValue } = validateActual(database,complete);
         database.connection.prepare(`INSERT INTO actual_values
           (company_id,exercise_id,original_version_id,period_id,center_id,account_id,budget_type,budgeted_value,actual_value,
