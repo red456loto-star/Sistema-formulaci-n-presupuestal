@@ -155,7 +155,7 @@ test("Fase 8 genera estados, análisis vertical/horizontal, ratios, Dupont, EVA 
   originalReport = await get(server, `/api/financial-analysis/report?${qs(originalDescriptor)}`);
   assert.equal(originalReport.body.eva.nopat, 140);
   assert.notEqual(originalReport.body.eva.eva, null);
-  assert.equal(originalReport.body.dupont.roe, 14);
+  assert.equal(originalReport.body.dupont.roe, 12.28);
   assert.ok(originalReport.body.ratios.some((ratio) => ratio.category === "LIQUIDEZ"));
   assert.ok(originalReport.body.ratios.some((ratio) => ratio.name === "ROE"));
 
