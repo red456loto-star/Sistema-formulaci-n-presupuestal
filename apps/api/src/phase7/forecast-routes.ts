@@ -37,6 +37,17 @@ const approveSchema = z.object({
   observation: z.string().trim().min(2).max(1000),
 });
 
+type ForecastLineRow = Record<string, unknown> & {
+  period_number: number;
+  period_name: string;
+  original_budget: number;
+  actual_value: number | null;
+  projected_value: number | null;
+  forecast_value: number;
+  value_origin: "REAL" | "PROYECCION";
+};
+type ForecastLineWithDifference = ForecastLineRow & { difference: number };
+
 function nextForecastNumber(database: DatabaseManager, exerciseId: number) {
   const row = database.connection.prepare("SELECT COALESCE(MAX(version_number),0)+1 next_number FROM budget_versions WHERE exercise_id=? AND version_type='FORECAST'")
     .get(exerciseId) as { next_number: number };
@@ -49,7 +60,7 @@ function nextRevisionNumber(database: DatabaseManager, originalVersionId: number
   return Number(row.next_number);
 }
 
-function forecastLines(database: DatabaseManager, versionId: number) {
+function forecastLines(database: DatabaseManager, versionId: number): { version: Record<string, unknown>; rows: ForecastLineWithDifference[] } {
   const version = getForecastVersion(database, versionId);
   const rows = database.connection.prepare(`SELECT fv.*,
     p.period_number,p.name period_name,p.status period_status,
@@ -66,22 +77,30 @@ function forecastLines(database: DatabaseManager, versionId: number) {
     JOIN budget_accounts a ON a.id=fv.account_id
     LEFT JOIN responsibles r ON r.id=fv.responsible_id
     WHERE fv.forecast_version_id=?
-    ORDER BY p.period_number,c.code,a.code`).all(versionId) as Array<Record<string, unknown>>;
-  return { version, rows: rows.map((row) => ({
-    ...row,
-    difference: roundAmount(Number(row.forecast_value) - Number(row.original_budget)),
-  })) };
+    ORDER BY p.period_number,c.code,a.code`).all(versionId) as ForecastLineRow[];
+  return {
+    version,
+    rows: rows.map((row) => ({
+      ...row,
+      period_number: Number(row.period_number),
+      original_budget: Number(row.original_budget),
+      actual_value: row.actual_value === null ? null : Number(row.actual_value),
+      projected_value: row.projected_value === null ? null : Number(row.projected_value),
+      forecast_value: Number(row.forecast_value),
+      difference: roundAmount(Number(row.forecast_value) - Number(row.original_budget)),
+    })),
+  };
 }
 
 function forecastSummary(database: DatabaseManager, versionId: number) {
   const { version, rows } = forecastLines(database, versionId);
   const months = Array.from({ length: 12 }, (_, index) => {
     const periodNumber = index + 1;
-    const periodRows = rows.filter((row) => Number(row.period_number) === periodNumber);
-    const original = periodRows.reduce((sum, row) => sum + Number(row.original_budget), 0);
+    const periodRows = rows.filter((row) => row.period_number === periodNumber);
+    const original = periodRows.reduce((sum, row) => sum + row.original_budget, 0);
     const realRows = periodRows.filter((row) => row.actual_value !== null);
     const actual = realRows.length ? realRows.reduce((sum, row) => sum + Number(row.actual_value), 0) : null;
-    const forecast = periodRows.reduce((sum, row) => sum + Number(row.forecast_value), 0);
+    const forecast = periodRows.reduce((sum, row) => sum + row.forecast_value, 0);
     return {
       period_number: periodNumber,
       period_name: String(periodRows[0]?.period_name ?? periodNumber),
@@ -92,9 +111,9 @@ function forecastSummary(database: DatabaseManager, versionId: number) {
       value_origin: periodNumber <= Number(version.cutoff_period_number) ? "REAL" : "PROYECCION",
     };
   });
-  const annualOriginal = rows.reduce((sum, row) => sum + Number(row.original_budget), 0);
+  const annualOriginal = rows.reduce((sum, row) => sum + row.original_budget, 0);
   const annualReal = rows.filter((row) => row.actual_value !== null).reduce((sum, row) => sum + Number(row.actual_value), 0);
-  const annualForecast = rows.reduce((sum, row) => sum + Number(row.forecast_value), 0);
+  const annualForecast = rows.reduce((sum, row) => sum + row.forecast_value, 0);
   return {
     version,
     monthly: months,
@@ -174,19 +193,22 @@ export function registerForecastRoutes(app: Express, database: DatabaseManager) 
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
       for (const row of originalRows) {
         const isReal = Number(row.period_number) <= input.cutoff_period_number;
-        const actual = isReal
-          ? database.connection.prepare(`SELECT actual_value,source_reference,responsible_id,comment FROM actual_values
-              WHERE original_version_id=? AND period_id=? AND center_id=? AND account_id=? AND budget_type='PRESUPUESTO_ORIGINAL'`)
-            .get(input.original_version_id,row.period_id,row.center_id,row.account_id) as Record<string, unknown>
-          : undefined;
+        let actual: Record<string, unknown> | undefined;
+        if (isReal) {
+          actual = database.connection.prepare(`SELECT actual_value,source_reference,responsible_id,comment FROM actual_values
+            WHERE original_version_id=? AND period_id=? AND center_id=? AND account_id=? AND budget_type='PRESUPUESTO_ORIGINAL'`)
+            .get(input.original_version_id,row.period_id,row.center_id,row.account_id) as Record<string, unknown> | undefined;
+          if (!actual) httpError(`Falta información real para el mes ${row.period_number}.`, 409);
+        }
         const original = Number(row.budgeted_value);
-        const actualValue = isReal ? Number(actual.actual_value) : null;
+        const actualValue = isReal ? Number(actual?.actual_value) : null;
         const projected = isReal ? null : original;
         const forecast = isReal ? actualValue : original;
         insert.run(
           input.company_id,input.exercise_id,versionId,input.original_version_id,row.period_id,row.center_id,row.group_id,row.element_id,row.account_id,
-          original,actualValue,projected,forecast,isReal ? "REAL" : "PROYECCION",isReal ? actual.comment ?? null : null,
-          isReal ? actual.source_reference : "Proyección inicial igual al presupuesto original",isReal ? actual.responsible_id ?? null : input.responsible_id,stamp,stamp,
+          original,actualValue,projected,forecast,isReal ? "REAL" : "PROYECCION",isReal ? actual?.comment ?? null : null,
+          isReal ? String(actual?.source_reference ?? "Información real registrada") : "Proyección inicial igual al presupuesto original",
+          isReal ? actual?.responsible_id ?? null : input.responsible_id,stamp,stamp,
         );
       }
       const version = database.connection.prepare("SELECT * FROM budget_versions WHERE id=?").get(versionId) as Record<string, unknown>;
