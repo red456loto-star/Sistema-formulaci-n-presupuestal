@@ -25,6 +25,7 @@ import { registerMasterBudgetRoutes } from "./phase6/routes";
 import { ensurePhase7Schema } from "./phase7/schema";
 import { registerPhase7Routes } from "./phase7/routes";
 import { ensurePhase8Schema } from "./phase8/schema";
+import { registerFinancialAnalysisContextGuard } from "./phase8/context-guard";
 import { registerFinancialAnalysisRoutes } from "./phase8/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
@@ -110,6 +111,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerOriginalBudgetRoutes(app, database);
   registerMasterBudgetRoutes(app, database);
   registerPhase7Routes(app, database);
+  registerFinancialAnalysisContextGuard(app, database);
   registerFinancialAnalysisRoutes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
