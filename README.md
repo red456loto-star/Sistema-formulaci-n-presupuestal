@@ -11,6 +11,7 @@ Aplicación de escritorio local para formulación, control y evaluación presupu
 - **Fase 4:** importación flexible de tablas maestras desde Excel.
 - **Fase 5:** presupuesto original mensual, total anual, valor real diferenciado y proyección anual de tres años.
 - **Fase 6:** presupuesto maestro integrado, estados financieros presupuestados y exportación Excel.
+- **Fase 7:** información real documentada, importación Excel y múltiples revisiones forecast por mes de corte.
 
 ## Acceso
 
@@ -22,22 +23,31 @@ Los responsables son registros empresariales con nombre, cargo y correo; no son 
 
 La barra superior permite seleccionar empresa, ejercicio, periodo y versión. Los selectores son dependientes y conservan el contexto localmente.
 
-La pantalla **Presupuesto maestro** requiere una versión anual de tipo `ORIGINAL` y contiene:
+### Información real
 
-- Presupuesto de ventas.
-- Presupuesto de inventarios.
-- Presupuesto de compras.
-- Presupuesto de producción calculado.
-- Materiales, mano de obra y costos indirectos por centro productivo.
-- Gastos por centro, grupo, elemento y cuenta.
-- Presupuesto de inversiones y depreciación.
-- Estado de resultados presupuestado.
-- Estado de situación financiera presupuestado.
-- Exportación Excel de cada componente y del consolidado.
+La pantalla **Información real** permite registrar o importar valores por empresa, ejercicio, versión original, periodo, centro, cuenta y tipo de presupuesto. Cada registro conserva:
 
-Los estados financieros se derivan de los componentes y de los saldos iniciales estrictamente necesarios; no se capturan como cifras finales aisladas.
+- Valor presupuestado.
+- Valor real.
+- Clasificación de la fuente.
+- Fuente o referencia.
+- Periodo y fecha de la fuente.
+- Responsable y comentario.
 
-La documentación detallada está en `README_FASE_6.md`.
+Los datos se distinguen como reales publicados, reales internos, derivados o demostrativos. El sistema no atribuye datos sintéticos a una empresa real.
+
+### Forecast
+
+La pantalla **Forecast** crea una revisión vinculada a una versión original aprobada o cerrada:
+
+```text
+Meses hasta el corte = información real
+Meses posteriores al corte = proyección forecast
+```
+
+Cada revisión registra código, número de revisión, mes de corte, responsable, observación, estado y fecha. Los meses reales quedan protegidos y una versión aprobada queda bloqueada.
+
+La documentación detallada está en `README_FASE_7.md`.
 
 ## Verificación
 

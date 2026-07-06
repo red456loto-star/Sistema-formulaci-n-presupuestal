@@ -12,9 +12,10 @@ import { VersionsPage } from "./pages/phase3/VersionsPage";
 import { ImportPage } from "./pages/phase4/ImportPage";
 import { OriginalBudgetPage } from "./pages/phase5/OriginalBudgetPage";
 import { MasterBudgetPage } from "./pages/phase6/MasterBudgetPage";
+import { ActualsPage } from "./pages/phase7/ActualsPage";
+import { ForecastPage } from "./pages/phase7/ForecastPage";
 
 const futureModules = [
-  ["/forecast", "Forecast", "Presupuesto revisado con valores reales y proyectados."],
   ["/analisis", "Análisis", "Análisis vertical, horizontal, ratios, Dupont, EVA, relevancia y variaciones."],
   ["/reportes", "Reportes", "Reportes en pantalla, impresos y exportables."],
   ["/propuestas", "Propuestas de mejora", "Propuestas con impacto positivo en la rentabilidad."],
@@ -34,6 +35,8 @@ export default function App() {
           <Route path="/versiones" element={<VersionsPage />} />
           <Route path="/importacion" element={<ImportPage />} />
           <Route path="/presupuesto-original" element={<OriginalBudgetPage />} />
+          <Route path="/informacion-real" element={<ActualsPage />} />
+          <Route path="/forecast" element={<ForecastPage />} />
           <Route path="/presupuesto-maestro" element={<MasterBudgetPage />} />
           <Route path="/estados-financieros" element={<MasterBudgetPage initialTab="Resultados" />} />
           {futureModules.map(([path, title, description]) => (

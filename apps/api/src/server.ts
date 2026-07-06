@@ -22,6 +22,8 @@ import { ensurePhase5Schema } from "./phase5/schema";
 import { registerOriginalBudgetRoutes } from "./phase5/routes";
 import { ensurePhase6Schema } from "./phase6/schema";
 import { registerMasterBudgetRoutes } from "./phase6/routes";
+import { ensurePhase7Schema } from "./phase7/schema";
+import { registerPhase7Routes } from "./phase7/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -47,6 +49,7 @@ export function createApp(options: StartServerOptions = {}) {
   ensurePhase4Schema(database);
   ensurePhase5Schema(database);
   ensurePhase6Schema(database);
+  ensurePhase7Schema(database);
   const app = express();
 
   app.disable("x-powered-by");
@@ -59,7 +62,7 @@ export function createApp(options: StartServerOptions = {}) {
   });
 
   app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.6.0", phase: 6, accessMode: "directo",
+    status: "ok", service: "presucontrol-api", version: "0.7.0", phase: 7, accessMode: "directo",
     timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
   }));
 
@@ -83,7 +86,10 @@ export function createApp(options: StartServerOptions = {}) {
       lineas_costos: count("master_costs"),
       lineas_gastos: count("master_expenses"),
       lineas_inversiones: count("master_investments"),
-      mensaje: "Fase 6: presupuesto maestro y estados financieros presupuestados, sin login.",
+      datos_reales: count("actual_values"),
+      versiones_forecast: count("forecast_profiles"),
+      lineas_forecast: count("forecast_values"),
+      mensaje: "Fase 7: información real y múltiples versiones forecast, sin login.",
     });
   });
 
@@ -98,6 +104,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerImportRoutes(app, database);
   registerOriginalBudgetRoutes(app, database);
   registerMasterBudgetRoutes(app, database);
+  registerPhase7Routes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
@@ -123,7 +130,7 @@ export function createApp(options: StartServerOptions = {}) {
     const message = error instanceof Error ? error.message : "Se produjo un error interno.";
     const statusCode = Number((error as { statusCode?: number })?.statusCode || 500);
     if (message.includes("UNIQUE constraint failed")) {
-      response.status(409).json({ code: "DUPLICATE", message: "Ya existe un registro con la misma combinación dentro del contexto activo." } satisfies ApiErrorResponse);
+      response.status(409).json({ code: "DUPLICATE", message: "Ya existe información para la misma empresa, versión, periodo, centro, cuenta y tipo de presupuesto." } satisfies ApiErrorResponse);
       return;
     }
     if (message.includes("CHECK constraint failed")) {

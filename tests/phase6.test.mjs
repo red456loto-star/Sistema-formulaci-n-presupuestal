@@ -17,14 +17,14 @@ const post = (server, route, body) => call(server, "POST", route, body);
 const patch = (server, route, body) => call(server, "PATCH", route, body);
 const put = (server, route, body) => call(server, "PUT", route, body);
 
-test("Fase 6 integra presupuesto maestro y estados balanceados", async (t) => {
+test("Fase 6 permanece operativa en fases posteriores", async (t) => {
   const dataDir = await mkdtemp(path.join(os.tmpdir(), "pc-f6-"));
   let server = await startServer({ port: 0, dataDir });
   t.after(async () => { try { await server.close(); } catch {} await rm(dataDir, { recursive: true, force: true }); });
 
   const health = await get(server, "/api/health");
-  assert.equal(health.body.phase, 6);
-  assert.equal(health.body.version, "0.6.0");
+  assert.ok(health.body.phase >= 6);
+  assert.equal(health.body.accessMode, "directo");
   assert.equal((await post(server, "/api/auth/login", {})).response.status, 404);
 
   const demo = (await get(server, "/api/catalog/empresas")).body.find((x) => x.code === "DEMO");
