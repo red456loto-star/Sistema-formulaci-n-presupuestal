@@ -28,6 +28,8 @@ import { ensurePhase8Schema } from "./phase8/schema";
 import { registerFinancialAnalysisContextGuard } from "./phase8/context-guard";
 import { registerFinancialAnalysisCorrectionRoutes } from "./phase8/correction-routes";
 import { registerFinancialAnalysisRoutes } from "./phase8/routes";
+import { ensurePhase9Schema } from "./phase9/schema";
+import { registerPhase9Routes } from "./phase9/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -46,6 +48,14 @@ function createLogger(dataDir: string) {
   return pino({ level: process.env.PRESUCONTROL_LOG_LEVEL || "info" }, pino.destination({ dest: path.join(logsDir, "api.log"), sync: false }));
 }
 
+function releaseMetadata() {
+  const candidate = Number(process.env.PRESUCONTROL_COMPAT_PHASE ?? 9);
+  return {
+    version: process.env.PRESUCONTROL_COMPAT_VERSION || "0.9.0",
+    phase: Number.isInteger(candidate) && candidate > 0 ? candidate : 9,
+  };
+}
+
 export function createApp(options: StartServerOptions = {}) {
   const dataDir = resolveDataDir(options.dataDir);
   const logger = createLogger(dataDir);
@@ -55,6 +65,7 @@ export function createApp(options: StartServerOptions = {}) {
   ensurePhase6Schema(database);
   ensurePhase7Schema(database);
   ensurePhase8Schema(database);
+  ensurePhase9Schema(database);
   const app = express();
 
   app.disable("x-powered-by");
@@ -66,10 +77,13 @@ export function createApp(options: StartServerOptions = {}) {
     next();
   });
 
-  app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.8.1", phase: 8, accessMode: "directo",
-    timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
-  }));
+  app.get("/api/health", (_request, response) => {
+    const release = releaseMetadata();
+    response.json({
+      status: "ok", service: "presucontrol-api", version: release.version, phase: release.phase, accessMode: "directo",
+      timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
+    });
+  });
 
   app.get("/api/demo/context", (_request, response) => response.json(database.getDemoContext()));
   app.get("/api/demo/summary", (_request, response) => {
@@ -96,7 +110,7 @@ export function createApp(options: StartServerOptions = {}) {
       lineas_forecast: count("forecast_values"),
       clasificaciones_financieras: count("financial_account_mappings"),
       supuestos_analisis: count("financial_analysis_assumptions"),
-      mensaje: "Fase 8 corregida: mapeos reversibles, validación de moneda, EVA obligatorio y exportación horizontal.",
+      mensaje: "Fase 9 activa: variaciones multidimensionales, relevancia de costos y dashboard presupuestal.",
     });
   });
 
@@ -115,6 +129,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerFinancialAnalysisContextGuard(app, database);
   registerFinancialAnalysisCorrectionRoutes(app, database);
   registerFinancialAnalysisRoutes(app, database);
+  registerPhase9Routes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
