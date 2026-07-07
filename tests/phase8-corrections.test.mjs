@@ -30,7 +30,7 @@ async function context(server, company, currency, responsible, year, suffix) {
     company_id: company.id, exercise_id: exercise.body.id, version_id: version.body.id,
     tax_rate: 0, collection_rate: 100, payment_rate: 100,
     opening_cash: 100, opening_receivables: 0, opening_ppe: 0,
-    opening_payables: 0, opening_debt: 0, notes: "Prueba F8 corregida",
+    opening_payables: 0, opening_debt: 0, notes: "Prueba F8.1",
   });
   return {
     company_id: company.id, exercise_id: exercise.body.id, version_id: version.body.id,
@@ -45,13 +45,13 @@ function query(value) {
   }).toString();
 }
 
-test("Fase 8 corrige mapeos, EVA, monedas y Excel horizontal", async (t) => {
-  const dataDir = await mkdtemp(path.join(os.tmpdir(), "pc-f8-corrections-"));
+test("Fase 8.1 corrige mapeos, EVA, monedas y Excel horizontal", async (t) => {
+  const dataDir = await mkdtemp(path.join(os.tmpdir(), "pc-f81-"));
   const server = await startServer({ port: 0, dataDir });
   t.after(async () => { await server.close(); await rm(dataDir, { recursive: true, force: true }); });
 
   const health = await request(server, "GET", "/api/health");
-  assert.equal(health.body.version, "0.8.0");
+  assert.equal(health.body.version, "0.8.1");
 
   const company = (await request(server, "GET", "/api/catalog/empresas")).body.find((row) => row.code === "DEMO");
   const currencies = (await request(server, "GET", "/api/catalog/monedas")).body;
@@ -80,7 +80,7 @@ test("Fase 8 corrige mapeos, EVA, monedas y Excel horizontal", async (t) => {
 
   await request(server, "PUT", "/api/financial-analysis/assumptions", {
     ...penDescriptor, tax_rate: 0, cost_of_capital_rate: 10, invested_capital_override: null,
-    source_reference: "Supuesto documentado F8", notes: null,
+    source_reference: "Supuesto documentado F8.1", notes: null,
   });
   report = await request(server, "GET", `/api/financial-analysis/report?${query(penDescriptor)}`);
   assert.equal(report.body.eva.eva, -10);
