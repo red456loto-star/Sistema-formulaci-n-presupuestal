@@ -15,6 +15,7 @@ import { MasterBudgetPage } from "./pages/phase6/MasterBudgetPage";
 import { ActualsPage } from "./pages/phase7/ActualsPage";
 import { ForecastPage } from "./pages/phase7/ForecastPage";
 import { FinancialAnalysisPage } from "./pages/phase8/FinancialAnalysisPage";
+import { Phase9Page } from "./pages/phase9/Phase9Page";
 
 const futureModules = [
   ["/reportes", "Reportes", "Reportes en pantalla, impresos y exportables."],
@@ -40,6 +41,8 @@ export default function App() {
           <Route path="/presupuesto-maestro" element={<MasterBudgetPage />} />
           <Route path="/estados-financieros" element={<FinancialAnalysisPage />} />
           <Route path="/analisis" element={<FinancialAnalysisPage />} />
+          <Route path="/variaciones" element={<Phase9Page initialTab="Variaciones" />} />
+          <Route path="/relevancia-costos" element={<Phase9Page initialTab="Relevancia de costos" />} />
           {futureModules.map(([path, title, description]) => (
             <Route key={path} path={path} element={<ModulePage title={title} description={description} />} />
           ))}
