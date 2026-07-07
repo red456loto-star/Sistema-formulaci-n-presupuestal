@@ -1,6 +1,6 @@
 {
   "name": "presucontrol-empresarial",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "Sistema Integral de Formulación, Control y Evaluación Presupuestal Empresarial",
   "main": "apps/desktop/dist/main.cjs",
@@ -15,7 +15,7 @@
     "build:api": "npm run build --workspace @presucontrol/api",
     "build:desktop": "npm run build --workspace @presucontrol/desktop",
     "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/frontend/tsconfig.json --noEmit",
-    "test": "npm run build:api && node --test tests/phase3.test.mjs tests/phase4.test.mjs tests/phase5.test.mjs tests/phase6.test.mjs tests/phase7.test.mjs tests/phase8.test.mjs",
+    "test": "npm run build:api && node --test tests/phase3.test.mjs tests/phase4.test.mjs tests/phase5.test.mjs tests/phase6.test.mjs tests/phase7.test.mjs tests/phase8.test.mjs tests/phase8-corrections.test.mjs",
     "verify": "npm run typecheck && npm test && npm run build",
     "desktop:dist": "npm run verify && electron-builder --win portable --x64",
     "start:api": "npm run start --workspace @presucontrol/api"
