@@ -48,6 +48,14 @@ function createLogger(dataDir: string) {
   return pino({ level: process.env.PRESUCONTROL_LOG_LEVEL || "info" }, pino.destination({ dest: path.join(logsDir, "api.log"), sync: false }));
 }
 
+function releaseMetadata() {
+  const candidate = Number(process.env.PRESUCONTROL_COMPAT_PHASE ?? 9);
+  return {
+    version: process.env.PRESUCONTROL_COMPAT_VERSION || "0.9.0",
+    phase: Number.isInteger(candidate) && candidate > 0 ? candidate : 9,
+  };
+}
+
 export function createApp(options: StartServerOptions = {}) {
   const dataDir = resolveDataDir(options.dataDir);
   const logger = createLogger(dataDir);
@@ -69,10 +77,13 @@ export function createApp(options: StartServerOptions = {}) {
     next();
   });
 
-  app.get("/api/health", (_request, response) => response.json({
-    status: "ok", service: "presucontrol-api", version: "0.9.0", phase: 9, accessMode: "directo",
-    timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
-  }));
+  app.get("/api/health", (_request, response) => {
+    const release = releaseMetadata();
+    response.json({
+      status: "ok", service: "presucontrol-api", version: release.version, phase: release.phase, accessMode: "directo",
+      timestamp: new Date().toISOString(), database: database.getStatus().connected ? "conectada" : "no disponible",
+    });
+  });
 
   app.get("/api/demo/context", (_request, response) => response.json(database.getDemoContext()));
   app.get("/api/demo/summary", (_request, response) => {
