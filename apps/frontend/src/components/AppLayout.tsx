@@ -3,12 +3,12 @@ import { NavLink, Outlet } from "react-router-dom";
 import {
   BarChart3, BriefcaseBusiness, CalendarRange, ChartNoAxesCombined, CircleDollarSign, DatabaseZap,
   FileSpreadsheet, Import, LayoutDashboard, Lightbulb, Mail, Menu, PanelLeftClose, PanelLeftOpen,
-  SlidersHorizontal, Target, TrendingUp, X,
+  Scale, SlidersHorizontal, Target, TrendingUp, X,
 } from "lucide-react";
 import { useWorkspace } from "../context/WorkspaceContext";
 
 const navigation = [
-  { to: "/", label: "Inicio", icon: LayoutDashboard, end: true },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/empresas", label: "Empresas y centros", icon: BriefcaseBusiness },
   { to: "/estructura", label: "Estructura presupuestal", icon: Target },
   { to: "/parametros", label: "Tablas maestras", icon: SlidersHorizontal },
@@ -20,7 +20,9 @@ const navigation = [
   { to: "/forecast", label: "Forecast", icon: TrendingUp },
   { to: "/presupuesto-maestro", label: "Presupuesto maestro", icon: CircleDollarSign },
   { to: "/estados-financieros", label: "Estados financieros", icon: BarChart3 },
-  { to: "/analisis", label: "Análisis", icon: ChartNoAxesCombined },
+  { to: "/analisis", label: "Análisis financiero", icon: ChartNoAxesCombined },
+  { to: "/variaciones", label: "Variaciones", icon: Scale },
+  { to: "/relevancia-costos", label: "Relevancia de costos", icon: Target },
   { to: "/reportes", label: "Reportes", icon: FileSpreadsheet },
   { to: "/propuestas", label: "Propuestas", icon: Lightbulb },
   { to: "/correo", label: "Envío por correo", icon: Mail },
@@ -53,7 +55,7 @@ export function AppLayout() {
           <ContextSelect label="Periodo" value={periodId} onChange={setPeriodId} disabled={!exerciseId} options={periods.map((item) => ({ id: item.id, label: `${String(item.period_number).padStart(2, "0")} · ${item.name}${item.status === "CERRADO" ? " (cerrado)" : ""}` }))} />
           <ContextSelect label="Versión" value={versionId} onChange={setVersionId} disabled={!exerciseId} options={versions.map((item) => ({ id: item.id, label: `${item.code} · ${item.version_type} · ${item.status}` }))} />
         </div>
-        <div className="local-mode"><strong>Fase 8 activa</strong><span>Estados y análisis financiero</span></div>
+        <div className="local-mode"><strong>Fase 9 activa</strong><span>Variaciones y dashboard</span></div>
       </header>
       <main className="content"><Outlet /></main>
     </div>
