@@ -62,8 +62,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PresuControl-Empresarial-Windows
-          path: |
-            release/*.exe
-            release/win-unpacked/**
+          path: release/PresuControl-Empresarial-*-x64.exe
           if-no-files-found: error
+          compression-level: 0
           retention-days: 14
