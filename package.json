@@ -15,7 +15,9 @@
     "build:api": "npm run build --workspace @presucontrol/api",
     "build:desktop": "npm run build --workspace @presucontrol/desktop",
     "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/frontend/tsconfig.json --noEmit",
-    "test": "npm run build:api && node --test tests/phase3.test.mjs tests/phase4.test.mjs tests/phase5.test.mjs tests/phase6.test.mjs tests/phase7.test.mjs tests/phase8.test.mjs tests/phase8-core-regression.test.mjs tests/phase8-corrections.test.mjs tests/phase9.test.mjs",
+    "test:legacy": "cross-env PRESUCONTROL_COMPAT_VERSION=0.8.1 PRESUCONTROL_COMPAT_PHASE=8 node --test tests/phase3.test.mjs tests/phase4.test.mjs tests/phase5.test.mjs tests/phase6.test.mjs tests/phase7.test.mjs tests/phase8.test.mjs tests/phase8-core-regression.test.mjs tests/phase8-corrections.test.mjs",
+    "test:phase9": "node --test tests/phase9.test.mjs",
+    "test": "npm run build:api && npm run test:legacy && npm run test:phase9",
     "verify": "npm run typecheck && npm test && npm run build",
     "desktop:dist": "npm run verify && electron-builder --win portable --x64",
     "start:api": "npm run start --workspace @presucontrol/api"
