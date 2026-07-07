@@ -66,20 +66,24 @@ export interface AnalysisAssumptions {
   saved: boolean;
 }
 
+export interface FinancialContext {
+  company_id: number;
+  company_name: string;
+  exercise_id: number;
+  exercise_code: string;
+  budget_year: number;
+  currency_id: number;
+  currency_code: string;
+  version_id: number;
+  version_code: string;
+  version_name: string;
+  source_type: AnalysisSourceType;
+  period_number: number | null;
+  period_label: string;
+}
+
 export interface FinancialSnapshot {
-  context: {
-    company_id: number;
-    company_name: string;
-    exercise_id: number;
-    exercise_code: string;
-    budget_year: number;
-    version_id: number;
-    version_code: string;
-    version_name: string;
-    source_type: AnalysisSourceType;
-    period_number: number | null;
-    period_label: string;
-  };
+  context: FinancialContext;
   income_statement: IncomeStatementData;
   balance_sheet: BalanceSheetData;
   vertical_analysis: VerticalRow[];
@@ -130,8 +134,8 @@ export interface HorizontalRow {
 }
 
 export interface HorizontalResult {
-  initial: FinancialSnapshot["context"];
-  final: FinancialSnapshot["context"];
+  initial: FinancialContext;
+  final: FinancialContext;
   rows: HorizontalRow[];
   warnings: string[];
 }
