@@ -44,13 +44,15 @@ export function registerFinancialAnalysisContextGuard(app: Express, database: Da
     ensurePeriodData(database, request.query);
     next();
   };
-
-  app.get("/api/financial-analysis/report", queryGuard);
-  app.get("/api/financial-analysis/export", queryGuard);
-  app.post("/api/financial-analysis/horizontal", (request: Request, _response: Response, next: NextFunction) => {
+  const horizontalGuard = (request: Request, _response: Response, next: NextFunction) => {
     const body = request.body as { initial?: DescriptorLike; final?: DescriptorLike };
     if (body.initial) ensurePeriodData(database, body.initial);
     if (body.final) ensurePeriodData(database, body.final);
     next();
-  });
+  };
+
+  app.get("/api/financial-analysis/report", queryGuard);
+  app.get("/api/financial-analysis/export", queryGuard);
+  app.post("/api/financial-analysis/horizontal", horizontalGuard);
+  app.post("/api/financial-analysis/horizontal/export", horizontalGuard);
 }
