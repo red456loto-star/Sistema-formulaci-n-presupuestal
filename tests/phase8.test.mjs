@@ -40,7 +40,7 @@ test("Fase 8 genera estados, análisis vertical/horizontal, ratios, Dupont, EVA 
 
   const health = await get(server, "/api/health");
   assert.equal(health.body.phase, 8);
-  assert.equal(health.body.version, "0.8.0");
+  assert.equal(health.body.version, "0.8.1");
   assert.equal(health.body.accessMode, "directo");
   assert.equal((await post(server, "/api/auth/login", {})).response.status, 404);
 
@@ -142,6 +142,7 @@ test("Fase 8 genera estados, análisis vertical/horizontal, ratios, Dupont, EVA 
   assert.equal(originalReport.body.balance_sheet.balanced, true);
   assert.equal(originalReport.body.vertical_analysis.find((row) => row.key === "sales").percentage, 100);
   assert.equal(originalReport.body.eva.eva, null);
+  assert.equal(originalReport.body.complete, false);
 
   const assumptions = await put(server, "/api/financial-analysis/assumptions", {
     ...originalDescriptor,
@@ -155,6 +156,7 @@ test("Fase 8 genera estados, análisis vertical/horizontal, ratios, Dupont, EVA 
   originalReport = await get(server, `/api/financial-analysis/report?${qs(originalDescriptor)}`);
   assert.equal(originalReport.body.eva.nopat, 140);
   assert.notEqual(originalReport.body.eva.eva, null);
+  assert.equal(originalReport.body.complete, true);
   assert.equal(originalReport.body.dupont.roe, 12.28);
   assert.ok(originalReport.body.ratios.some((ratio) => ratio.category === "LIQUIDEZ"));
   assert.ok(originalReport.body.ratios.some((ratio) => ratio.name === "ROE"));

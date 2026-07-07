@@ -103,6 +103,14 @@ test("Fase 8.1 corrige mapeos, EVA, monedas y Excel horizontal", async (t) => {
     method: "POST", headers, body: JSON.stringify({ initial: penDescriptor, final: penDescriptor }),
   });
   assert.equal(exported.status, 200);
+  assert.match(String(exported.headers.get("content-disposition")), /^attachment; filename="analisis-horizontal-/);
   const bytes = Buffer.from(await exported.arrayBuffer());
   assert.equal(bytes.subarray(0, 2).toString(), "PK");
+
+  const missingRealPeriod = { ...penDescriptor, source_type: "REAL", period_number: 2 };
+  const blockedExport = await request(server, "POST", "/api/financial-analysis/horizontal/export", {
+    initial: missingRealPeriod, final: missingRealPeriod,
+  });
+  assert.equal(blockedExport.response.status, 409);
+  assert.match(blockedExport.body.message, /No existe información real/i);
 });
