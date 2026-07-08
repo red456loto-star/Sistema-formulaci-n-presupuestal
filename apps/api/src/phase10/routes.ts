@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { DatabaseManager } from "../../../../packages/database/src/index";
-import { buildReport, getReportOptions, type ReportInput } from "./report-model";
+import { getReportOptions, type ReportInput } from "./report-model";
+import { buildReport } from "./report-service";
 import { buildReportPdf, buildReportWorkbook, reportFileName } from "./report-export";
 import { createAndSendBudget, getDeliveryAttachment, getSmtpSettings, listDeliveries, retryBudgetDelivery, saveSmtpSettings, type SmtpSettingsInput } from "./mail";
 import { createProposal, listProposals, suggestProposals, updateProposal } from "./proposals";
