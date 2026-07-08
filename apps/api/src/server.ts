@@ -32,6 +32,8 @@ import { ensurePhase9Schema } from "./phase9/schema";
 import { registerPhase9Routes } from "./phase9/routes";
 import { ensurePhase10Schema } from "./phase10/schema";
 import { registerPhase10Routes } from "./phase10/routes";
+import { ensurePhase11Schema } from "./phase11/schema";
+import { registerPhase11Routes } from "./phase11/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -51,10 +53,10 @@ function createLogger(dataDir: string) {
 }
 
 function releaseMetadata() {
-  const candidate = Number(process.env.PRESUCONTROL_COMPAT_PHASE ?? 10);
+  const candidate = Number(process.env.PRESUCONTROL_COMPAT_PHASE ?? 11);
   return {
-    version: process.env.PRESUCONTROL_COMPAT_VERSION || "0.10.0",
-    phase: Number.isInteger(candidate) && candidate > 0 ? candidate : 10,
+    version: process.env.PRESUCONTROL_COMPAT_VERSION || "0.11.0",
+    phase: Number.isInteger(candidate) && candidate > 0 ? candidate : 11,
   };
 }
 
@@ -69,6 +71,7 @@ export function createApp(options: StartServerOptions = {}) {
   ensurePhase8Schema(database);
   ensurePhase9Schema(database);
   ensurePhase10Schema(database);
+  ensurePhase11Schema(database);
   const app = express();
 
   app.disable("x-powered-by");
@@ -92,30 +95,16 @@ export function createApp(options: StartServerOptions = {}) {
   app.get("/api/demo/summary", (_request, response) => {
     const count = (table: string) => (database.connection.prepare(`SELECT COUNT(*) AS total FROM ${table}`).get() as { total: number }).total;
     response.json({
-      empresas: count("companies"),
-      responsables: count("responsibles"),
-      centros: count("activity_centers"),
-      cuentas: count("budget_accounts"),
-      ejercicios: count("budget_exercises"),
-      versiones: count("budget_versions"),
-      periodos: count("budget_periods"),
-      importaciones: count("import_batches"),
-      lineas_presupuesto_original: count("budget_original_lines"),
-      productos_materiales: count("master_items"),
-      lineas_ventas: count("master_sales"),
-      lineas_inventarios: count("master_inventories"),
-      lineas_compras: count("master_purchases"),
-      lineas_costos: count("master_costs"),
-      lineas_gastos: count("master_expenses"),
-      lineas_inversiones: count("master_investments"),
-      datos_reales: count("actual_values"),
-      versiones_forecast: count("forecast_profiles"),
-      lineas_forecast: count("forecast_values"),
-      clasificaciones_financieras: count("financial_account_mappings"),
-      supuestos_analisis: count("financial_analysis_assumptions"),
-      envios_correo: count("email_deliveries"),
-      propuestas_mejora: count("improvement_proposals"),
-      mensaje: "Fase 10 activa: reportes, PDF, correo por centro y propuestas de mejora sustentadas.",
+      empresas: count("companies"), responsables: count("responsibles"), centros: count("activity_centers"), cuentas: count("budget_accounts"),
+      ejercicios: count("budget_exercises"), versiones: count("budget_versions"), periodos: count("budget_periods"), importaciones: count("import_batches"),
+      lineas_presupuesto_original: count("budget_original_lines"), productos_materiales: count("master_items"), lineas_ventas: count("master_sales"),
+      lineas_inventarios: count("master_inventories"), lineas_compras: count("master_purchases"), lineas_costos: count("master_costs"),
+      lineas_gastos: count("master_expenses"), lineas_inversiones: count("master_investments"), datos_reales: count("actual_values"),
+      versiones_forecast: count("forecast_profiles"), lineas_forecast: count("forecast_values"), clasificaciones_financieras: count("financial_account_mappings"),
+      supuestos_analisis: count("financial_analysis_assumptions"), envios_correo: count("email_deliveries"), propuestas_mejora: count("improvement_proposals"),
+      tipos_presupuesto: count("budget_types"), conjuntos_datos_maestros: count("master_data_sets"), filas_datos_maestros: count("master_data_rows"),
+      propuestas_fase11: count("phase11_improvement_proposals"),
+      mensaje: "Fase 11 activa: jerarquía corregida, datos maestros por contexto y análisis automáticos.",
     });
   });
 
@@ -136,6 +125,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerFinancialAnalysisRoutes(app, database);
   registerPhase9Routes(app, database);
   registerPhase10Routes(app, database);
+  registerPhase11Routes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
