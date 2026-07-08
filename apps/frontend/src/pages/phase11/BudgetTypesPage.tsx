@@ -14,7 +14,8 @@ export function BudgetTypesPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const ready = Boolean(companyId && exerciseId && periodId && versionId);
-  const activeBudgetTypes = budgetTypes.filter((item) => item.active && (allowedCodes.has(item.code) || item.category === "OTRO"));
+  const visibleBudgetTypes = budgetTypes.filter((item) => allowedCodes.has(item.code) || item.category === "OTRO");
+  const activeBudgetTypes = visibleBudgetTypes.filter((item) => item.active);
 
   useEffect(() => { if (!editing) setForm(blank); }, [companyId]);
 
@@ -73,7 +74,7 @@ export function BudgetTypesPage() {
         </FormGrid><Message>Los presupuestos de ventas, inventarios, compras, producción, costos, gastos, inversión y estados financieros ya no se registran aquí; se visualizan en Presupuesto maestro después de subir la data.</Message><div className="button-row"><button className="button button--primary" disabled={!ready || busy}>{editing ? "Guardar cambios" : "Crear tipo"}</button>{editing && <button type="button" className="button button--secondary" onClick={() => { setEditing(null); setForm(blank); }}>Cancelar</button>}</div></form>
       </section>
       <section className="panel panel--grow"><div className="panel__heading"><div><span className="eyebrow">Catálogo empresarial</span><h2>Tipos disponibles</h2></div></div>
-        <DataTable headers={["Orden", "Código", "Tipo", "Estado", "Acciones"]} rows={budgetTypes.map((row) => [row.sort_order, <strong>{row.code}</strong>, <div><strong>{row.name}</strong><small>{row.description ?? "—"}</small></div>, <span className={`status-dot ${row.active ? "status-dot--active" : ""}`}>{row.active ? "Activo" : "Inactivo"}</span>, <div className="table-actions"><button className="button button--secondary button--compact" onClick={() => edit(row)} disabled={!ready || busy}><Pencil size={13} />Editar</button><button className="button button--secondary button--compact" onClick={() => void toggle(row)} disabled={!ready || busy}><Power size={13} />{row.active ? "Desactivar" : "Activar"}</button><button className="button button--primary button--compact" onClick={() => setBudgetTypeId(row.id)} disabled={!row.active || !ready}>Seleccionar</button></div>])} empty="No existen tipos de presupuesto para la empresa." />
+        <DataTable headers={["Orden", "Código", "Tipo", "Estado", "Acciones"]} rows={visibleBudgetTypes.map((row) => [row.sort_order, <strong>{row.code}</strong>, <div><strong>{row.name}</strong><small>{row.description ?? "—"}</small></div>, <span className={`status-dot ${row.active ? "status-dot--active" : ""}`}>{row.active ? "Activo" : "Inactivo"}</span>, <div className="table-actions"><button className="button button--secondary button--compact" onClick={() => edit(row)} disabled={!ready || busy}><Pencil size={13} />Editar</button><button className="button button--secondary button--compact" onClick={() => void toggle(row)} disabled={!ready || busy}><Power size={13} />{row.active ? "Desactivar" : "Activar"}</button><button className="button button--primary button--compact" onClick={() => setBudgetTypeId(row.id)} disabled={!row.active || !ready}>Seleccionar</button></div>])} empty="No existen tipos de presupuesto para la empresa." />
       </section>
     </div>
   </div>;
