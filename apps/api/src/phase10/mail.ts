@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseManager } from "../../../../packages/database/src/index";
 import { httpError } from "../phase3/common";
+import { buildApprovedCenterMasterReport } from "../phase11/reports";
 import { buildReport, type ReportInput } from "./report-model";
 import { buildReportPdf, reportFileName } from "./report-export";
 
@@ -109,16 +110,22 @@ async function deliver(settings: SmtpSettingsInput, delivery: Record<string, unk
 }
 
 async function generateAttachment(database: DatabaseManager, input: SendBudgetInput, context: ReturnType<typeof loadDeliveryContext>) {
-  const reportInput: ReportInput = {
-    company_id: input.company_id,
-    exercise_id: input.exercise_id,
-    version_id: input.version_id,
-    report_type: String(context.version.version_type) === "FORECAST" ? "FORECAST" : "ORIGINAL",
-    period_number: input.period_number ?? null,
-    center_id: input.center_id,
-    responsible_id: Number(context.center.responsible_id),
-  };
-  const report = buildReport(database, reportInput);
+  const masterReport = buildApprovedCenterMasterReport(database, input);
+  const compatibilityPhase = Number(process.env.PRESUCONTROL_COMPAT_PHASE ?? 11);
+  let report = masterReport;
+  if (!report && compatibilityPhase <= 10) {
+    const reportInput: ReportInput = {
+      company_id: input.company_id,
+      exercise_id: input.exercise_id,
+      version_id: input.version_id,
+      report_type: String(context.version.version_type) === "FORECAST" ? "FORECAST" : "ORIGINAL",
+      period_number: input.period_number ?? null,
+      center_id: input.center_id,
+      responsible_id: Number(context.center.responsible_id),
+    };
+    report = buildReport(database, reportInput);
+  }
+  if (!report) httpError("No existe información maestra presupuestada para el centro, periodo y versión aprobada seleccionados.", 409);
   const pdf = await buildReportPdf(report);
   const outbox = path.join(database.dataDir, "phase10", "outbox");
   fs.mkdirSync(outbox, { recursive: true });

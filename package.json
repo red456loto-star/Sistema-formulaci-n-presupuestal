@@ -1,6 +1,6 @@
 {
   "name": "presucontrol-empresarial",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "description": "Sistema Integral de Formulación, Control y Evaluación Presupuestal Empresarial",
   "main": "apps/desktop/dist/main.cjs",
@@ -17,8 +17,9 @@
     "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/frontend/tsconfig.json --noEmit",
     "test:legacy": "cross-env PRESUCONTROL_COMPAT_VERSION=0.8.1 PRESUCONTROL_COMPAT_PHASE=8 node --test tests/phase3.test.mjs tests/phase4.test.mjs tests/phase5.test.mjs tests/phase6.test.mjs tests/phase7.test.mjs tests/phase8.test.mjs tests/phase8-core-regression.test.mjs tests/phase8-corrections.test.mjs",
     "test:phase9": "cross-env PRESUCONTROL_COMPAT_VERSION=0.9.0 PRESUCONTROL_COMPAT_PHASE=9 node --test tests/phase9.test.mjs",
-    "test:phase10": "node --test tests/phase10.test.mjs",
-    "test": "npm run build:api && npm run test:legacy && npm run test:phase9 && npm run test:phase10",
+    "test:phase10": "cross-env PRESUCONTROL_COMPAT_VERSION=0.10.0 PRESUCONTROL_COMPAT_PHASE=10 node --test tests/phase10.test.mjs",
+    "test:phase11": "node --test tests/phase11.test.mjs",
+    "test": "npm run build:api && npm run test:legacy && npm run test:phase9 && npm run test:phase10 && npm run test:phase11",
     "verify": "npm run typecheck && npm test && npm run build",
     "desktop:dist": "npm run verify && electron-builder --win portable --x64",
     "start:api": "npm run start --workspace @presucontrol/api"
