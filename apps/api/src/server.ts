@@ -30,6 +30,8 @@ import { registerFinancialAnalysisCorrectionRoutes } from "./phase8/correction-r
 import { registerFinancialAnalysisRoutes } from "./phase8/routes";
 import { ensurePhase9Schema } from "./phase9/schema";
 import { registerPhase9Routes } from "./phase9/routes";
+import { ensurePhase10Schema } from "./phase10/schema";
+import { registerPhase10Routes } from "./phase10/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
 export interface StartedServer {
@@ -49,10 +51,10 @@ function createLogger(dataDir: string) {
 }
 
 function releaseMetadata() {
-  const candidate = Number(process.env.PRESUCONTROL_COMPAT_PHASE ?? 9);
+  const candidate = Number(process.env.PRESUCONTROL_COMPAT_PHASE ?? 10);
   return {
-    version: process.env.PRESUCONTROL_COMPAT_VERSION || "0.9.0",
-    phase: Number.isInteger(candidate) && candidate > 0 ? candidate : 9,
+    version: process.env.PRESUCONTROL_COMPAT_VERSION || "0.10.0",
+    phase: Number.isInteger(candidate) && candidate > 0 ? candidate : 10,
   };
 }
 
@@ -66,6 +68,7 @@ export function createApp(options: StartServerOptions = {}) {
   ensurePhase7Schema(database);
   ensurePhase8Schema(database);
   ensurePhase9Schema(database);
+  ensurePhase10Schema(database);
   const app = express();
 
   app.disable("x-powered-by");
@@ -110,7 +113,9 @@ export function createApp(options: StartServerOptions = {}) {
       lineas_forecast: count("forecast_values"),
       clasificaciones_financieras: count("financial_account_mappings"),
       supuestos_analisis: count("financial_analysis_assumptions"),
-      mensaje: "Fase 9 activa: variaciones multidimensionales, relevancia de costos y dashboard presupuestal.",
+      envios_correo: count("email_deliveries"),
+      propuestas_mejora: count("improvement_proposals"),
+      mensaje: "Fase 10 activa: reportes, PDF, correo por centro y propuestas de mejora sustentadas.",
     });
   });
 
@@ -130,6 +135,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerFinancialAnalysisCorrectionRoutes(app, database);
   registerFinancialAnalysisRoutes(app, database);
   registerPhase9Routes(app, database);
+  registerPhase10Routes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
   app.post("/api/system/backup", async (_request, response, next) => {
