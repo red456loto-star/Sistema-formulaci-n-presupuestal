@@ -1,17 +1,26 @@
 import { DatabaseManager } from "../../../../packages/database/src/index";
 
 const defaultBudgetTypes = [
-  ["VENTAS", "Presupuesto de ventas", "OPERATIVO", 10],
-  ["PRODUCCION", "Presupuesto de producción", "OPERATIVO", 20],
-  ["COMPRAS", "Presupuesto de compras", "OPERATIVO", 30],
-  ["COSTOS", "Presupuesto de costos", "COSTOS", 40],
-  ["GASTOS", "Presupuesto de gastos", "COSTOS", 50],
-  ["INVERSIONES", "Presupuesto de inversiones", "FINANCIERO", 60],
-  ["CAJA", "Presupuesto de caja", "FINANCIERO", 70],
-  ["ESTADO_RESULTADOS", "Estado de resultados", "ESTADO_FINANCIERO", 80],
-  ["ESTADO_SITUACION", "Estado de situación financiera", "ESTADO_FINANCIERO", 90],
-  ["FLUJO_EFECTIVO", "Estado de flujos de efectivo", "ESTADO_FINANCIERO", 100],
+  [
+    "ORIGINAL_ANUAL_PROYECTADO",
+    "Presupuesto original anual y proyección a 3 años",
+    "OTRO",
+    10,
+    "Permite formular el presupuesto original anual del próximo periodo con detalle mensual y proyectar los tres años posteriores con detalle anual.",
+  ],
+  [
+    "FORECAST_REVISADO",
+    "Presupuesto revisado forecast",
+    "OTRO",
+    20,
+    "Permite formular el presupuesto revisado con información real hasta cierto periodo y valores proyectados presupuestados para los periodos restantes.",
+  ],
 ] as const;
+
+const formerMasterComponentCodes = [
+  "VENTAS", "PRODUCCION", "COMPRAS", "COSTOS", "GASTOS", "INVERSIONES", "CAJA",
+  "ESTADO_RESULTADOS", "ESTADO_SITUACION", "FLUJO_EFECTIVO",
+];
 
 export function seedBudgetTypes(database: DatabaseManager, companyId?: number) {
   const companies = companyId
@@ -21,9 +30,14 @@ export function seedBudgetTypes(database: DatabaseManager, companyId?: number) {
   const insert = database.connection.prepare(`INSERT OR IGNORE INTO budget_types
     (company_id,code,name,category,description,sort_order,active,created_at,updated_at)
     VALUES (?,?,?,?,?,?,1,?,?)`);
+  const update = database.connection.prepare("UPDATE budget_types SET name=?,category=?,description=?,sort_order=?,active=1,updated_at=? WHERE company_id=? AND code=?");
+  const deactivateFormerComponents = database.connection.prepare(`UPDATE budget_types SET active=0,updated_at=?
+    WHERE company_id=? AND code IN (${formerMasterComponentCodes.map(() => "?").join(",")})`);
   for (const company of companies) {
-    for (const [code, name, category, sortOrder] of defaultBudgetTypes) {
-      insert.run(company.id, code, name, category, "Tipo presupuestal disponible para la formulación y el análisis integral.", sortOrder, stamp, stamp);
+    deactivateFormerComponents.run(stamp, company.id, ...formerMasterComponentCodes);
+    for (const [code, name, category, sortOrder, description] of defaultBudgetTypes) {
+      insert.run(company.id, code, name, category, description, sortOrder, stamp, stamp);
+      update.run(name, category, description, sortOrder, stamp, company.id, code);
     }
   }
 }
@@ -132,8 +146,11 @@ export function ensurePhase11Schema(database: DatabaseManager) {
     database.connection.exec("CREATE INDEX IF NOT EXISTS idx_master_rows_dimension ON master_data_rows(center_id,element_id,account_id)");
     database.connection.exec("CREATE INDEX IF NOT EXISTS idx_phase11_proposals_context ON phase11_improvement_proposals(company_id,exercise_id,period_id,version_id,budget_type_id,status)");
     database.connection.prepare("INSERT OR IGNORE INTO schema_migrations (version,name,applied_at) VALUES (12,?,?)")
-      .run("correcciones_jerarquia_datos_maestros_fase_11", stamp);
-    database.connection.prepare("INSERT OR REPLACE INTO app_meta (key,value,updated_at) VALUES ('current_phase','11',?)").run(stamp);
+      .run("correcciones_jerarquia_datos_maestros", stamp);
+    database.connection.prepare("INSERT OR IGNORE INTO schema_migrations (version,name,applied_at) VALUES (13,?,?)")
+      .run("corr_2_tipos_presupuesto_y_presupuesto_maestro", stamp);
+    database.connection.prepare("INSERT OR REPLACE INTO app_meta (key,value,updated_at) VALUES ('current_release','12',?)").run(stamp);
+    database.connection.prepare("INSERT OR REPLACE INTO app_meta (key,value,updated_at) VALUES ('current_phase','12',?)").run(stamp);
     seedBudgetTypes(database);
   })();
 }

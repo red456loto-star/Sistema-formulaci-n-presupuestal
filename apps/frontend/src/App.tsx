@@ -7,6 +7,7 @@ import { EmailPage } from "./pages/phase10/EmailPage";
 import { AnalysisWorkspacePage } from "./pages/phase11/AnalysisWorkspacePage";
 import { BudgetTypesPage } from "./pages/phase11/BudgetTypesPage";
 import { CompanyProfilePage } from "./pages/phase11/CompanyProfilePage";
+import { MasterBudgetPage } from "./pages/phase11/MasterBudgetPage";
 import { MasterDataPage } from "./pages/phase11/MasterDataPage";
 import { PeriodVersionPage } from "./pages/phase11/PeriodVersionPage";
 import { Phase11ProposalsPage } from "./pages/phase11/ProposalsPage";
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/periodos-versiones" element={<Phase11RouteGuard requirement="COMPANY"><PeriodVersionPage /></Phase11RouteGuard>} />
         <Route path="/tipos-presupuesto" element={<Phase11RouteGuard requirement="PERIOD_VERSION"><BudgetTypesPage /></Phase11RouteGuard>} />
         <Route path="/tablas-maestras" element={<Phase11RouteGuard requirement="BUDGET_TYPE"><MasterDataPage /></Phase11RouteGuard>} />
+        <Route path="/presupuesto-maestro" element={<Phase11RouteGuard requirement="MASTER_DATA"><MasterBudgetPage /></Phase11RouteGuard>} />
         <Route path="/analisis-financiero-integral" element={<Phase11RouteGuard requirement="MASTER_DATA"><AnalysisWorkspacePage mode="FINANCIAL" /></Phase11RouteGuard>} />
         <Route path="/relevancia-costos" element={<Phase11RouteGuard requirement="MASTER_DATA"><AnalysisWorkspacePage mode="COSTS" /></Phase11RouteGuard>} />
         <Route path="/variaciones" element={<Phase11RouteGuard requirement="MASTER_DATA"><AnalysisWorkspacePage mode="VARIATIONS" /></Phase11RouteGuard>} />
@@ -33,10 +35,9 @@ export default function App() {
         <Route path="/versiones" element={<Navigate to="/periodos-versiones" replace />} />
         <Route path="/parametros" element={<Navigate to="/tablas-maestras" replace />} />
         <Route path="/importacion" element={<Navigate to="/tablas-maestras" replace />} />
-        <Route path="/presupuesto-original" element={<Navigate to="/tablas-maestras" replace />} />
+        <Route path="/presupuesto-original" element={<Navigate to="/tipos-presupuesto" replace />} />
         <Route path="/informacion-real" element={<Navigate to="/tablas-maestras" replace />} />
-        <Route path="/forecast" element={<Navigate to="/tablas-maestras" replace />} />
-        <Route path="/presupuesto-maestro" element={<Navigate to="/tablas-maestras" replace />} />
+        <Route path="/forecast" element={<Navigate to="/tipos-presupuesto" replace />} />
         <Route path="/estados-financieros" element={<Navigate to="/analisis-financiero-integral" replace />} />
         <Route path="/analisis" element={<Navigate to="/analisis-financiero-integral" replace />} />
         <Route path="/reportes" element={<Navigate to="/dashboard-presupuestal" replace />} />
