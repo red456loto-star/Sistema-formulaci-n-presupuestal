@@ -34,15 +34,7 @@ const smtpSchema = z.object({
 const proposalSource = z.enum(["ORIGINAL", "FORECAST", "VARIACION", "COSTOS", "DASHBOARD"]);
 const proposalPriority = z.enum(["ALTA", "MEDIA", "BAJA"]);
 const proposalStatus = z.enum(["PROPUESTA", "APROBADA", "EN_EJECUCION", "IMPLEMENTADA", "DESCARTADA"]);
-const proposalCreateSchema = z.object({
-  company_id: positiveId,
-  exercise_id: positiveId,
-  period_id: nullableId,
-  version_id: positiveId,
-  center_id: nullableId,
-  element_id: nullableId,
-  account_id: nullableId,
-  source_type: proposalSource,
+const proposalFields = {
   problem: z.string().trim().min(5).max(500),
   evidence_value: z.coerce.number().finite(),
   evidence_unit: z.string().trim().min(1).max(40),
@@ -55,12 +47,32 @@ const proposalCreateSchema = z.object({
   priority: proposalPriority,
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   status: proposalStatus.optional(),
+};
+const proposalCreateSchema = z.object({
+  company_id: positiveId,
+  exercise_id: positiveId,
+  period_id: nullableId,
+  version_id: positiveId,
+  center_id: nullableId,
+  element_id: nullableId,
+  account_id: nullableId,
+  source_type: proposalSource,
+  ...proposalFields,
 });
-const proposalPatchSchema = proposalCreateSchema.pick({
-  problem: true, evidence_value: true, evidence_unit: true, evidence_text: true, probable_cause: true,
-  proposed_action: true, expected_impact: true, profitability_impact: true, responsible_id: true,
-  priority: true, due_date: true, status: true,
-}).partial();
+const proposalPatchSchema = z.object({
+  problem: proposalFields.problem.optional(),
+  evidence_value: proposalFields.evidence_value.optional(),
+  evidence_unit: proposalFields.evidence_unit.optional(),
+  evidence_text: proposalFields.evidence_text.optional(),
+  probable_cause: proposalFields.probable_cause.optional(),
+  proposed_action: proposalFields.proposed_action.optional(),
+  expected_impact: proposalFields.expected_impact.optional(),
+  profitability_impact: proposalFields.profitability_impact,
+  responsible_id: proposalFields.responsible_id.optional(),
+  priority: proposalFields.priority.optional(),
+  due_date: proposalFields.due_date.optional(),
+  status: proposalStatus.optional(),
+});
 
 export function registerPhase10Routes(app: Express, database: DatabaseManager) {
   app.get("/api/phase10/options", (request: Request, response: Response) => {
