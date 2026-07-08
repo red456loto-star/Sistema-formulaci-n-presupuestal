@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
-  BarChart3, BriefcaseBusiness, CalendarRange, Database, LayoutDashboard, Layers3, Lightbulb, LockKeyhole,
+  BarChart3, BriefcaseBusiness, CalendarRange, ClipboardList, Database, LayoutDashboard, Layers3, Lightbulb, LockKeyhole,
   Mail, Menu, PanelLeftClose, PanelLeftOpen, Scale, Target, X,
 } from "lucide-react";
 import { requirementSatisfied, type Phase11Requirement } from "./Phase11RouteGuard";
@@ -12,12 +12,13 @@ const navigation: Array<{ to: string; label: string; icon: typeof BriefcaseBusin
   { to: "/periodos-versiones", label: "Periodos y versiones", icon: CalendarRange, requirement: "COMPANY", step: 2 },
   { to: "/tipos-presupuesto", label: "Tipos de presupuesto", icon: Layers3, requirement: "PERIOD_VERSION", step: 3 },
   { to: "/tablas-maestras", label: "Tablas maestras", icon: Database, requirement: "BUDGET_TYPE", step: 4 },
-  { to: "/analisis-financiero-integral", label: "Análisis financiero integral", icon: BarChart3, requirement: "MASTER_DATA", step: 5 },
-  { to: "/relevancia-costos", label: "Relevancia de costos", icon: Target, requirement: "MASTER_DATA", step: 6 },
-  { to: "/variaciones", label: "Análisis de variaciones", icon: Scale, requirement: "MASTER_DATA", step: 7 },
-  { to: "/dashboard-presupuestal", label: "Dashboard de presupuestos", icon: LayoutDashboard, requirement: "MASTER_DATA", step: 8 },
-  { to: "/propuestas", label: "Propuestas de mejora", icon: Lightbulb, requirement: "MASTER_DATA", step: 9 },
-  { to: "/correo", label: "Envío por correo", icon: Mail, requirement: "MASTER_DATA", step: 10 },
+  { to: "/presupuesto-maestro", label: "Presupuesto maestro", icon: ClipboardList, requirement: "MASTER_DATA", step: 5 },
+  { to: "/analisis-financiero-integral", label: "Análisis financiero integral", icon: BarChart3, requirement: "MASTER_DATA", step: 6 },
+  { to: "/relevancia-costos", label: "Relevancia de costos", icon: Target, requirement: "MASTER_DATA", step: 7 },
+  { to: "/variaciones", label: "Análisis de variaciones", icon: Scale, requirement: "MASTER_DATA", step: 8 },
+  { to: "/dashboard-presupuestal", label: "Dashboard de presupuestos", icon: LayoutDashboard, requirement: "MASTER_DATA", step: 9 },
+  { to: "/propuestas", label: "Propuestas de mejora", icon: Lightbulb, requirement: "MASTER_DATA", step: 10 },
+  { to: "/correo", label: "Envío por correo", icon: Mail, requirement: "MASTER_DATA", step: 11 },
 ];
 
 export function AppLayout() {
@@ -54,7 +55,7 @@ export function AppLayout() {
           <ContextSelect label="Versión" value={versionId} onChange={setVersionId} disabled={!exerciseId} options={versions.map((item) => ({ id: item.id, label: `${item.code} · ${item.version_type} · ${item.status}` }))} />
           <ContextSelect label="Tipo de presupuesto" value={budgetTypeId} onChange={setBudgetTypeId} disabled={!companyId || !exerciseId || !periodId || !versionId} options={budgetTypes.filter((item) => item.active).map((item) => ({ id: item.id, label: `${item.code} · ${item.name}` }))} />
         </div>
-        <div className="local-mode"><strong>Fase 11 activa</strong><span>Flujo jerárquico</span></div>
+        <div className="local-mode"><strong>Flujo corregido</strong><span>Trabajo jerárquico</span></div>
       </header>
       <main className="content"><Outlet /></main>
     </div>
