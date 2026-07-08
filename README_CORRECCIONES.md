@@ -20,14 +20,17 @@ Las opciones posteriores se subordinan a las anteriores para evitar mezclar empr
 
 ## Tipos de presupuesto
 
-Esta opción ya no contiene componentes del presupuesto maestro. Solo contiene modalidades presupuestales, por ejemplo:
+Esta opción ya no contiene componentes del presupuesto maestro. Solo contiene modalidades presupuestales:
 
-- Presupuesto original anual y proyección a 3 años.
+- Presupuesto original anual mensual.
+- Presupuesto proyectado a 3 años anual.
 - Presupuesto revisado forecast.
 
-La primera modalidad permite formular el presupuesto original anual del próximo periodo con detalle mensual y proyectar los tres años posteriores con detalle anual.
+El presupuesto original anual mensual permite formular el presupuesto original del próximo periodo anual con detalle mensual.
 
-La segunda modalidad permite formular un presupuesto revisado con información real hasta cierto periodo y valores proyectados presupuestados para los periodos restantes.
+El presupuesto proyectado a 3 años anual permite proyectar los tres años posteriores con detalle anual.
+
+El presupuesto revisado forecast permite formular un presupuesto revisado con información real hasta cierto periodo y valores proyectados presupuestados para los periodos restantes.
 
 ## Presupuesto maestro
 

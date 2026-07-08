@@ -34,8 +34,11 @@ Las opciones posteriores permanecen bloqueadas hasta completar las anteriores. V
 
 Los tipos de presupuesto representan la modalidad de trabajo:
 
-- Presupuesto original anual y proyección a 3 años.
+- Presupuesto original anual mensual.
+- Presupuesto proyectado a 3 años anual.
 - Presupuesto revisado forecast.
+
+El presupuesto original anual mensual corresponde al próximo periodo anual con detalle mensual. El presupuesto proyectado a 3 años anual corresponde a los tres años posteriores con detalle anual. Son modalidades separadas.
 
 Los componentes como ventas, inventarios, compras, producción, costos, gastos, inversión y estados financieros no se registran en esta opción. Esos componentes se visualizan en Presupuesto maestro luego de subir la información.
 

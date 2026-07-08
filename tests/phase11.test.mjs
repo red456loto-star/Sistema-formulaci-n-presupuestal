@@ -60,7 +60,7 @@ function importBody(ids, periodId, budgetTypeId, dataKind, rows, extra = {}) {
   };
 }
 
-test("Corr 2 mantiene jerarquía, separa tipos de presupuesto y conserva análisis", async (t) => {
+test("Corr 2 mantiene jerarquía, separa tres tipos presupuestales y conserva análisis", async (t) => {
   const dataDir = await mkdtemp(path.join(os.tmpdir(), "pc-corr2-"));
   let server = await startServer({ port: 0, dataDir });
   t.after(async () => { delete process.env.PRESUCONTROL_MAIL_TEST_MODE; try { await server.close(); } catch {} await rm(dataDir, { recursive: true, force: true }); });
@@ -69,16 +69,19 @@ test("Corr 2 mantiene jerarquía, separa tipos de presupuesto y conserva anális
   assert.deepEqual([health.body.version, health.body.phase, health.body.accessMode], ["0.12.0", 12, "directo"]);
   assert.equal((await call(server, "POST", "/api/auth/login", {})).response.status, 404);
   assert.equal(server.database.connection.prepare("SELECT name FROM schema_migrations WHERE version=13").get().name, "corr_2_tipos_presupuesto_y_presupuesto_maestro");
+  assert.equal(server.database.connection.prepare("SELECT name FROM schema_migrations WHERE version=14").get().name, "corr_2_separar_original_y_proyectado");
 
   const ids = seedPhase9(server.database);
   const period = server.database.connection.prepare("SELECT id FROM budget_periods WHERE exercise_id=? AND period_number=1").get(ids.exerciseId);
   const budgetTypes = await call(server, "GET", `/api/phase11/budget-types?company_id=${ids.companyId}`);
   assert.equal(budgetTypes.response.status, 200);
-  assert.ok(budgetTypes.body.some((item) => item.code === "ORIGINAL_ANUAL_PROYECTADO"));
-  assert.ok(budgetTypes.body.some((item) => item.code === "FORECAST_REVISADO"));
+  assert.ok(budgetTypes.body.some((item) => item.code === "ORIGINAL_ANUAL_MENSUAL" && item.active === 1));
+  assert.ok(budgetTypes.body.some((item) => item.code === "PROYECTADO_TRES_ANIOS_ANUAL" && item.active === 1));
+  assert.ok(budgetTypes.body.some((item) => item.code === "FORECAST_REVISADO" && item.active === 1));
+  assert.equal(budgetTypes.body.find((item) => item.code === "ORIGINAL_ANUAL_PROYECTADO")?.active ?? 0, 0);
   assert.equal(budgetTypes.body.find((item) => item.code === "VENTAS")?.active ?? 0, 0);
   assert.equal(budgetTypes.body.find((item) => item.code === "COSTOS")?.active ?? 0, 0);
-  const budgetTypeId = budgetTypes.body.find((item) => item.code === "ORIGINAL_ANUAL_PROYECTADO").id;
+  const budgetTypeId = budgetTypes.body.find((item) => item.code === "ORIGINAL_ANUAL_MENSUAL").id;
   const ctx = context(ids, period.id, budgetTypeId);
   const query = new URLSearchParams(Object.entries(ctx).map(([key, value]) => [key, String(value)])).toString();
 
