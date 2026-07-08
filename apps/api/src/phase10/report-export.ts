@@ -44,8 +44,6 @@ export function buildReportWorkbook(report: ReportDocument) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "PresuControl Empresarial";
   workbook.created = new Date();
-  workbook.properties.title = report.title;
-  workbook.properties.subject = report.subtitle;
 
   const summary = workbook.addWorksheet("Resumen");
   summary.columns = [{ key: "label", width: 34 }, { key: "value", width: 70 }];
@@ -96,7 +94,6 @@ export function buildReportWorkbook(report: ReportDocument) {
     });
   }
   detail.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
-  detail.pageMargins = { left: 0.25, right: 0.25, top: 0.45, bottom: 0.45, header: 0.2, footer: 0.2 };
   detail.headerFooter.oddHeader = `&B${report.title}`;
   detail.headerFooter.oddFooter = "Página &P de &N";
   return workbook;
@@ -130,9 +127,10 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number, m
   if (lines.length < maxLines && line) lines.push(line);
   const consumed = lines.join(" ").length;
   if (consumed < normalized.length && lines.length) {
-    let last = lines.length - 1;
-    while (lines[last].length > 3 && font.widthOfTextAtSize(`${lines[last]}…`, size) > maxWidth) lines[last] = lines[last].slice(0, -1);
-    lines[last] = `${lines[last].replace(/[.,;:]$/, "")}…`;
+    const lastIndex = lines.length - 1;
+    let lastLine = lines[lastIndex] ?? "";
+    while (lastLine.length > 3 && font.widthOfTextAtSize(`${lastLine}…`, size) > maxWidth) lastLine = lastLine.slice(0, -1);
+    lines[lastIndex] = `${lastLine.replace(/[.,;:]$/, "")}…`;
   }
   return lines.slice(0, maxLines);
 }
