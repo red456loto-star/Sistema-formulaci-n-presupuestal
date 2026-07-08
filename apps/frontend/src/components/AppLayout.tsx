@@ -55,7 +55,7 @@ export function AppLayout() {
           <ContextSelect label="Periodo" value={periodId} onChange={setPeriodId} disabled={!exerciseId} options={periods.map((item) => ({ id: item.id, label: `${String(item.period_number).padStart(2, "0")} · ${item.name}${item.status === "CERRADO" ? " (cerrado)" : ""}` }))} />
           <ContextSelect label="Versión" value={versionId} onChange={setVersionId} disabled={!exerciseId} options={versions.map((item) => ({ id: item.id, label: `${item.code} · ${item.version_type} · ${item.status}` }))} />
         </div>
-        <div className="local-mode"><strong>Fase 9 activa</strong><span>Variaciones y dashboard</span></div>
+        <div className="local-mode"><strong>Fase 10 activa</strong><span>Reportes y distribución</span></div>
       </header>
       <main className="content"><Outlet /></main>
     </div>

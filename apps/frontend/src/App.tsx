@@ -2,7 +2,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { WorkspaceProvider } from "./context/WorkspaceContext";
 import { DashboardPage } from "./pages/DashboardPage";
-import { ModulePage } from "./pages/ModulePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { CompaniesPage } from "./pages/phase2/CompaniesPage";
 import { StructurePage } from "./pages/phase2/StructurePage";
@@ -16,12 +15,9 @@ import { ActualsPage } from "./pages/phase7/ActualsPage";
 import { ForecastPage } from "./pages/phase7/ForecastPage";
 import { FinancialAnalysisPage } from "./pages/phase8/FinancialAnalysisPage";
 import { Phase9Page } from "./pages/phase9/Phase9Page";
-
-const futureModules = [
-  ["/reportes", "Reportes", "Reportes en pantalla, impresos y exportables."],
-  ["/propuestas", "Propuestas de mejora", "Propuestas con impacto positivo en la rentabilidad."],
-  ["/correo", "Envío por correo", "Distribución del presupuesto aprobado a responsables de centros."],
-] as const;
+import { EmailPage } from "./pages/phase10/EmailPage";
+import { ProposalsPage } from "./pages/phase10/ProposalsPage";
+import { ReportsPage } from "./pages/phase10/ReportsPage";
 
 export default function App() {
   return (
@@ -43,9 +39,9 @@ export default function App() {
           <Route path="/analisis" element={<FinancialAnalysisPage />} />
           <Route path="/variaciones" element={<Phase9Page initialTab="Variaciones" />} />
           <Route path="/relevancia-costos" element={<Phase9Page initialTab="Relevancia de costos" />} />
-          {futureModules.map(([path, title, description]) => (
-            <Route key={path} path={path} element={<ModulePage title={title} description={description} />} />
-          ))}
+          <Route path="/reportes" element={<ReportsPage />} />
+          <Route path="/propuestas" element={<ProposalsPage />} />
+          <Route path="/correo" element={<EmailPage />} />
           <Route path="/inicio" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
