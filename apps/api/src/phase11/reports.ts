@@ -1,5 +1,4 @@
 import { DatabaseManager } from "../../../../packages/database/src/index";
-import { httpError } from "../phase3/common";
 import type { ReportDocument, ReportType, ReportValueType } from "../phase10/report-model";
 import { buildPhase11Analysis } from "./analysis";
 import { ensurePhase11Context, type Phase11ContextInput } from "./context";
@@ -34,7 +33,6 @@ function contextForReport(database: DatabaseManager, input: Phase11ContextInput)
 function documentBase(database: DatabaseManager, input: Phase11ContextInput, data: Omit<ReportDocument, "context" | "generated_at">): ReportDocument {
   return { ...data, context: contextForReport(database, input), generated_at: new Date().toISOString() };
 }
-
 function moneySummary(label: string, value: unknown) { return { label, value, type: "money" as ReportValueType }; }
 function numberSummary(label: string, value: unknown) { return { label, value, type: "number" as ReportValueType }; }
 function percentSummary(label: string, value: unknown) { return { label, value, type: "percent" as ReportValueType }; }
@@ -51,8 +49,7 @@ export function buildPhase11Report(database: DatabaseManager, input: Phase11Cont
       { section: "EVA", item: "Valor económico agregado", budgeted: null, real: null, result: analysis.financial.eva.eva, percentage: analysis.financial.eva.wacc_rate, formula: "NOPAT - CAPITAL INVERTIDO × WACC" },
     ];
     return documentBase(database, input, {
-      report_type: "FINANCIAL",
-      title: "Análisis integral de estados financieros",
+      report_type: "FINANCIAL", title: "Análisis integral de estados financieros",
       subtitle: "Análisis vertical, horizontal, ratios, Dupont y EVA calculados desde las tablas maestras",
       file_slug: `analisis-financiero-${suffix}`,
       columns: [
@@ -72,8 +69,7 @@ export function buildPhase11Report(database: DatabaseManager, input: Phase11Cont
       ...analysis.costs.by_element.map((row) => ({ dimension: "Elemento", code: row.code, name: row.name, amount: row.amount, participation: row.participation })),
     ];
     return documentBase(database, input, {
-      report_type: "CENTERS",
-      title: "Relevancia de la estructura de costos",
+      report_type: "CENTERS", title: "Relevancia de la estructura de costos",
       subtitle: "Costos fijos, variables, directos e indirectos por centro y elemento",
       file_slug: `relevancia-costos-${suffix}`,
       columns: [
@@ -88,8 +84,7 @@ export function buildPhase11Report(database: DatabaseManager, input: Phase11Cont
   }
   if (kind === "VARIATIONS") {
     return documentBase(database, input, {
-      report_type: "VARIANCES",
-      title: "Análisis de variaciones presupuestales",
+      report_type: "VARIANCES", title: "Análisis de variaciones presupuestales",
       subtitle: "Data presupuestada versus data real por periodo, tipo, elemento, cuenta y centro",
       file_slug: `variaciones-${suffix}`,
       columns: [
@@ -106,13 +101,14 @@ export function buildPhase11Report(database: DatabaseManager, input: Phase11Cont
     });
   }
   if (kind === "DASHBOARD") {
+    const trendRows = analysis.dashboard.trend as Array<Record<string, unknown>>;
+    const criticalRows = analysis.dashboard.critical_items as Array<Record<string, unknown>>;
     const rows = [
-      ...analysis.dashboard.trend.map((row) => ({ category: "Tendencia", indicator: `${row.period_number} · ${row.period_name}`, budgeted: row.budgeted, real: row.real, variation: row.variation, percentage: row.execution_percentage })),
-      ...analysis.dashboard.critical_items.map((row) => ({ category: "Partida crítica", indicator: `${row.center_code ?? "—"} · ${row.account_name}`, budgeted: row.budgeted, real: row.real, variation: row.variation, percentage: row.variation_percentage })),
+      ...trendRows.map((row) => ({ category: "Tendencia", indicator: `${row.period_number} · ${row.period_name}`, budgeted: row.budgeted, real: row.real, variation: row.variation, percentage: row.execution_percentage })),
+      ...criticalRows.map((row) => ({ category: "Partida crítica", indicator: `${row.center_code ?? "—"} · ${row.account_name}`, budgeted: row.budgeted, real: row.real, variation: row.variation, percentage: row.variation_percentage })),
     ];
     return documentBase(database, input, {
-      report_type: "DASHBOARD",
-      title: "Dashboard de presupuestos",
+      report_type: "DASHBOARD", title: "Dashboard de presupuestos",
       subtitle: "Resumen ejecutivo, tendencia, ejecución y partidas críticas",
       file_slug: `dashboard-${suffix}`,
       columns: [
@@ -134,8 +130,7 @@ export function buildPhase11Report(database: DatabaseManager, input: Phase11Cont
     ORDER BY CASE p.priority WHEN 'ALTA' THEN 1 WHEN 'MEDIA' THEN 2 ELSE 3 END,p.due_date,p.id DESC`)
     .all(input.company_id, input.exercise_id, input.period_id, input.version_id, input.budget_type_id) as Array<Record<string, unknown>>;
   return documentBase(database, input, {
-    report_type: "PROPOSALS",
-    title: "Informe de propuestas de mejora",
+    report_type: "PROPOSALS", title: "Informe de propuestas de mejora",
     subtitle: "Acciones con evidencia e impacto positivo esperado en la rentabilidad",
     file_slug: `propuestas-${suffix}`,
     columns: [
@@ -148,7 +143,7 @@ export function buildPhase11Report(database: DatabaseManager, input: Phase11Cont
       { key: "due_date", label: "Plazo", type: "date" },
     ],
     rows: proposals,
-    summary: [numberSummary("Propuestas", proposals.length), numberSummary("Prioridad alta", proposals.filter((row) => row.priority === "ALTA").length), moneySummary("Impacto esperado", proposals.reduce((sum, row) => sum + Number(row.expected_impact ?? 0), 0))],
+    summary: [numberSummary("Propuestas", proposals.length), numberSummary("Prioridad alta", proposals.filter((row) => row.priority === "ALTA").length), moneySummary("Impacto esperado", proposals.reduce((total, row) => total + Number(row.expected_impact ?? 0), 0))],
     notes: proposals.length ? [] : ["No existen propuestas registradas para el contexto activo."],
   });
 }
@@ -167,7 +162,8 @@ export function buildApprovedCenterMasterReport(database: DatabaseManager, input
     ORDER BY p.period_number,bt.sort_order,r.row_order,r.id`).all(...params) as Array<Record<string, unknown>>;
   if (!rows.length) return null;
   const center = database.connection.prepare(`SELECT c.code,c.name,r.id responsible_id,r.full_name responsible_name,r.position responsible_position
-    FROM activity_centers c JOIN responsibles r ON r.id=c.responsible_id WHERE c.id=? AND c.company_id=?`).get(input.center_id, input.company_id) as Record<string, unknown>;
+    FROM activity_centers c JOIN responsibles r ON r.id=c.responsible_id WHERE c.id=? AND c.company_id=?`).get(input.center_id, input.company_id) as Record<string, unknown> | undefined;
+  if (!center) return null;
   const currency = database.connection.prepare("SELECT code,symbol FROM currencies WHERE id=?").get(version.currency_id) as { code: string; symbol: string } | undefined;
   const total = rows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
   return {
@@ -180,7 +176,7 @@ export function buildApprovedCenterMasterReport(database: DatabaseManager, input
       exercise_code: String(version.exercise_code), budget_year: Number(version.budget_year), version_id: input.version_id,
       version_code: String(version.code), version_name: String(version.name), version_type: String(version.version_type), version_status: String(version.status),
       currency_code: currency?.code ?? "PEN", currency_symbol: currency?.symbol ?? "S/", period_number: input.period_number ?? null,
-      period_label: input.period_number ? String(rows[0].period_name) : "Todos los periodos con data maestra", center_id: input.center_id,
+      period_label: input.period_number ? String(rows[0]?.period_name ?? input.period_number) : "Todos los periodos con data maestra", center_id: input.center_id,
       center_label: `${center.code} · ${center.name}`, responsible_id: Number(center.responsible_id), responsible_label: `${center.responsible_name} · ${center.responsible_position}`,
     },
     columns: [
