@@ -2,22 +2,30 @@ import { DatabaseManager } from "../../../../packages/database/src/index";
 
 const defaultBudgetTypes = [
   [
-    "ORIGINAL_ANUAL_PROYECTADO",
-    "Presupuesto original anual y proyección a 3 años",
+    "ORIGINAL_ANUAL_MENSUAL",
+    "Presupuesto original anual mensual",
     "OTRO",
     10,
-    "Permite formular el presupuesto original anual del próximo periodo con detalle mensual y proyectar los tres años posteriores con detalle anual.",
+    "Permite formular el presupuesto original anual del próximo periodo con detalle mensual.",
+  ],
+  [
+    "PROYECTADO_TRES_ANIOS_ANUAL",
+    "Presupuesto proyectado a 3 años anual",
+    "OTRO",
+    20,
+    "Permite proyectar los tres años posteriores con detalle anual.",
   ],
   [
     "FORECAST_REVISADO",
     "Presupuesto revisado forecast",
     "OTRO",
-    20,
+    30,
     "Permite formular el presupuesto revisado con información real hasta cierto periodo y valores proyectados presupuestados para los periodos restantes.",
   ],
 ] as const;
 
-const formerMasterComponentCodes = [
+const retiredBudgetTypeCodes = [
+  "ORIGINAL_ANUAL_PROYECTADO",
   "VENTAS", "PRODUCCION", "COMPRAS", "COSTOS", "GASTOS", "INVERSIONES", "CAJA",
   "ESTADO_RESULTADOS", "ESTADO_SITUACION", "FLUJO_EFECTIVO",
 ];
@@ -31,10 +39,10 @@ export function seedBudgetTypes(database: DatabaseManager, companyId?: number) {
     (company_id,code,name,category,description,sort_order,active,created_at,updated_at)
     VALUES (?,?,?,?,?,?,1,?,?)`);
   const update = database.connection.prepare("UPDATE budget_types SET name=?,category=?,description=?,sort_order=?,active=1,updated_at=? WHERE company_id=? AND code=?");
-  const deactivateFormerComponents = database.connection.prepare(`UPDATE budget_types SET active=0,updated_at=?
-    WHERE company_id=? AND code IN (${formerMasterComponentCodes.map(() => "?").join(",")})`);
+  const deactivateRetiredTypes = database.connection.prepare(`UPDATE budget_types SET active=0,updated_at=?
+    WHERE company_id=? AND code IN (${retiredBudgetTypeCodes.map(() => "?").join(",")})`);
   for (const company of companies) {
-    deactivateFormerComponents.run(stamp, company.id, ...formerMasterComponentCodes);
+    deactivateRetiredTypes.run(stamp, company.id, ...retiredBudgetTypeCodes);
     for (const [code, name, category, sortOrder, description] of defaultBudgetTypes) {
       insert.run(company.id, code, name, category, description, sortOrder, stamp, stamp);
       update.run(name, category, description, sortOrder, stamp, company.id, code);
@@ -149,6 +157,8 @@ export function ensurePhase11Schema(database: DatabaseManager) {
       .run("correcciones_jerarquia_datos_maestros", stamp);
     database.connection.prepare("INSERT OR IGNORE INTO schema_migrations (version,name,applied_at) VALUES (13,?,?)")
       .run("corr_2_tipos_presupuesto_y_presupuesto_maestro", stamp);
+    database.connection.prepare("INSERT OR IGNORE INTO schema_migrations (version,name,applied_at) VALUES (14,?,?)")
+      .run("corr_2_separar_original_y_proyectado", stamp);
     database.connection.prepare("INSERT OR REPLACE INTO app_meta (key,value,updated_at) VALUES ('current_release','12',?)").run(stamp);
     database.connection.prepare("INSERT OR REPLACE INTO app_meta (key,value,updated_at) VALUES ('current_phase','12',?)").run(stamp);
     seedBudgetTypes(database);
