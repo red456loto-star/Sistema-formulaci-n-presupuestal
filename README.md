@@ -14,12 +14,34 @@ Aplicación de escritorio local para formulación, control y evaluación presupu
 - **Fase 7:** información real documentada, importación Excel y múltiples revisiones forecast por mes de corte.
 - **Fase 8:** estados financieros comparables, análisis vertical y horizontal, ratios, Dupont y EVA.
 - **Fase 9:** variaciones multidimensionales, relevancia de costos y dashboard presupuestal.
+- **Fase 10:** reportes en pantalla, impresión, Excel y PDF; correo por centro; cola offline y propuestas de mejora.
 
 ## Acceso
 
 El ejecutable abre directamente el dashboard. El sistema no utiliza login, cuentas de usuario, contraseñas, roles, permisos, sesiones ni tokens.
 
 Los responsables son registros empresariales con nombre, cargo y correo; no son cuentas de acceso.
+
+## Reportes y distribución
+
+Las pantallas **Reportes**, **Envío por correo** y **Propuestas** permiten:
+
+- Consultar reportes en pantalla.
+- Imprimir en formato A4.
+- Exportar Excel.
+- Exportar PDF.
+- Filtrar por empresa, ejercicio, periodo, versión, centro y responsable.
+- Generar el presupuesto aprobado de cada centro.
+- Enviarlo al responsable registrado.
+- Conservar el PDF local cuando no hay internet.
+- Registrar pendientes, errores y reintentos.
+- Formular propuestas con evidencia cuantitativa, impacto y plazo.
+
+Los reportes disponibles incluyen presupuesto original, forecast, presupuesto maestro, estados financieros, variaciones, centros, resumen ejecutivo, dashboard y propuestas.
+
+La contraseña SMTP no se almacena. Solo se usa durante el envío o reintento actual.
+
+La documentación detallada está en `README_FASE_10.md`.
 
 ## Control y evaluación presupuestal
 
@@ -45,10 +67,6 @@ El sistema calcula:
 - Costos fijos, variables, directos e indirectos.
 - Impacto en resultado y rentabilidad.
 - Ranking de centros y cuentas críticos.
-
-La exportación Excel incluye resumen, variaciones detalladas, tendencia, rankings, relevancia de costos y advertencias. Los gráficos funcionan localmente sin internet.
-
-La documentación detallada está en `README_FASE_9.md`.
 
 ## Análisis financiero
 
@@ -78,4 +96,4 @@ npm run verify
 npm run desktop:dist
 ```
 
-GitHub Actions genera también el ejecutable portátil de Windows.
+GitHub Actions publica el artifact `PresuControl-Empresarial-Windows-Completo`, que contiene tanto el ejecutable portátil como la carpeta `win-unpacked` completa para respaldo técnico.
