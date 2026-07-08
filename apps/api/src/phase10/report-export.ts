@@ -1,7 +1,6 @@
 import ExcelJS from "exceljs";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { ReportColumn, ReportDocument, ReportValueType } from "./report-model";
-
-const PDFDocument = require("pdfkit") as new (options?: Record<string, unknown>) => any;
 
 function textValue(value: unknown) {
   if (value === null || value === undefined || value === "") return "—";
@@ -81,7 +80,7 @@ export function buildReportWorkbook(report: ReportDocument) {
   detail.getRow(1).font = { bold: true };
   detail.getRow(1).alignment = { vertical: "middle", wrapText: true };
   detail.views = [{ state: "frozen", ySplit: 1 }];
-  detail.autoFilter = { from: "A1", to: `${detail.getColumn(Math.max(1, report.columns.length)).letter}1` };
+  if (report.columns.length) detail.autoFilter = { from: "A1", to: `${detail.getColumn(report.columns.length).letter}1` };
   for (const source of report.rows) {
     const row = detail.addRow(source);
     report.columns.forEach((column, index) => {
@@ -103,113 +102,170 @@ export function buildReportWorkbook(report: ReportDocument) {
   return workbook;
 }
 
-function drawPageHeader(doc: any, report: ReportDocument, continuation = false) {
-  doc.font("Helvetica-Bold").fontSize(15).text(report.title, { align: "center" });
-  doc.moveDown(0.2).font("Helvetica").fontSize(8).text(report.subtitle, { align: "center" });
-  doc.moveDown(0.6);
+const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
+const MARGIN = 30;
+const HEADER_BOTTOM = 515;
+const FOOTER_TOP = 24;
+
+function normalizePdfText(value: string) {
+  return value.replace(/[\u2013\u2014]/g, "-").replace(/\u2022/g, "-").replace(/\s+/g, " ").trim();
+}
+
+function wrapText(text: string, font: PDFFont, size: number, maxWidth: number, maxLines = 3) {
+  const normalized = normalizePdfText(text);
+  if (!normalized) return ["—"];
+  const words = normalized.split(" ");
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+      line = candidate;
+      continue;
+    }
+    if (line) lines.push(line);
+    line = word;
+    if (lines.length >= maxLines) break;
+  }
+  if (lines.length < maxLines && line) lines.push(line);
+  const consumed = lines.join(" ").length;
+  if (consumed < normalized.length && lines.length) {
+    let last = lines.length - 1;
+    while (lines[last].length > 3 && font.widthOfTextAtSize(`${lines[last]}…`, size) > maxWidth) lines[last] = lines[last].slice(0, -1);
+    lines[last] = `${lines[last].replace(/[.,;:]$/, "")}…`;
+  }
+  return lines.slice(0, maxLines);
+}
+
+function drawLines(page: PDFPage, lines: string[], x: number, y: number, width: number, font: PDFFont, size: number, color = rgb(0.12, 0.16, 0.23), align: "left" | "center" | "right" = "left") {
+  lines.forEach((line, index) => {
+    const textWidth = font.widthOfTextAtSize(line, size);
+    const adjustedX = align === "center" ? x + Math.max(0, (width - textWidth) / 2) : align === "right" ? x + Math.max(0, width - textWidth) : x;
+    page.drawText(line, { x: adjustedX, y: y - index * (size + 2), size, font, color });
+  });
+}
+
+function drawHeader(page: PDFPage, report: ReportDocument, normal: PDFFont, bold: PDFFont, continuation = false) {
+  const [width] = A4_LANDSCAPE;
+  drawLines(page, wrapText(report.title, bold, 15, width - 120, 1), 60, 558, width - 120, bold, 15, rgb(0.05, 0.09, 0.16), "center");
+  drawLines(page, wrapText(report.subtitle, normal, 8, width - 120, 2), 60, 538, width - 120, normal, 8, rgb(0.29, 0.35, 0.43), "center");
+  page.drawLine({ start: { x: MARGIN, y: 526 }, end: { x: width - MARGIN, y: 526 }, thickness: 0.7, color: rgb(0.78, 0.82, 0.87) });
   const left = `${report.context.company_name} · ${report.context.exercise_code} · ${report.context.version_code}`;
   const right = `${report.context.period_label} · ${report.context.currency_code}`;
-  doc.fontSize(7).text(left, 36, doc.y, { width: 380 }).text(right, 430, doc.y - 8, { width: 370, align: "right" });
-  doc.moveDown(0.8);
-  if (continuation) doc.font("Helvetica-Oblique").fontSize(7).text("Continuación", { align: "right" }).font("Helvetica");
+  drawLines(page, wrapText(left, normal, 7, 390, 1), MARGIN, 516, 390, normal, 7, rgb(0.29, 0.35, 0.43));
+  drawLines(page, wrapText(right, normal, 7, 340, 1), width - MARGIN - 340, 516, 340, normal, 7, rgb(0.29, 0.35, 0.43), "right");
+  if (continuation) page.drawText("Continuación", { x: width - 110, y: 499, size: 6.5, font: normal, color: rgb(0.4, 0.45, 0.53) });
 }
 
-function ensureSpace(doc: any, report: ReportDocument, required: number) {
-  if (doc.y + required <= doc.page.height - 42) return;
-  doc.addPage();
-  drawPageHeader(doc, report, true);
+function addPage(pdf: PDFDocument, report: ReportDocument, normal: PDFFont, bold: PDFFont, continuation = false) {
+  const page = pdf.addPage(A4_LANDSCAPE);
+  drawHeader(page, report, normal, bold, continuation);
+  return { page, y: continuation ? 492 : HEADER_BOTTOM - 18 };
 }
 
-function drawSummary(doc: any, report: ReportDocument) {
-  if (!report.summary.length) return;
-  doc.font("Helvetica-Bold").fontSize(9).text("Resumen");
-  doc.moveDown(0.25);
-  const width = (doc.page.width - 72) / Math.min(4, report.summary.length || 1);
+function drawSummary(page: PDFPage, report: ReportDocument, normal: PDFFont, bold: PDFFont, startY: number) {
+  if (!report.summary.length) return startY;
+  page.drawText("Resumen", { x: MARGIN, y: startY, size: 9, font: bold, color: rgb(0.05, 0.09, 0.16) });
+  let y = startY - 12;
+  const columns = Math.min(4, Math.max(1, report.summary.length));
+  const gap = 8;
+  const cardWidth = (A4_LANDSCAPE[0] - MARGIN * 2 - gap * (columns - 1)) / columns;
   report.summary.forEach((item, index) => {
-    if (index > 0 && index % 4 === 0) doc.moveDown(2.5);
-    const x = 36 + (index % 4) * width;
-    const y = doc.y;
-    doc.rect(x, y, width - 8, 34).strokeColor("#cbd5e1").stroke();
-    doc.font("Helvetica").fontSize(6.5).fillColor("#475569").text(item.label, x + 5, y + 5, { width: width - 18 });
-    doc.font("Helvetica-Bold").fontSize(8).fillColor("#0f172a").text(formatValue(item.value, item.type, report.context.currency_code), x + 5, y + 17, { width: width - 18 });
+    if (index > 0 && index % columns === 0) y -= 43;
+    const column = index % columns;
+    const x = MARGIN + column * (cardWidth + gap);
+    page.drawRectangle({ x, y: y - 34, width: cardWidth, height: 34, borderWidth: 0.6, borderColor: rgb(0.78, 0.82, 0.87), color: rgb(0.97, 0.98, 0.99) });
+    drawLines(page, wrapText(item.label, normal, 6.5, cardWidth - 10, 1), x + 5, y - 9, cardWidth - 10, normal, 6.5, rgb(0.35, 0.4, 0.48));
+    drawLines(page, wrapText(formatValue(item.value, item.type, report.context.currency_code), bold, 8, cardWidth - 10, 1), x + 5, y - 23, cardWidth - 10, bold, 8, rgb(0.05, 0.09, 0.16));
   });
-  doc.y += 42;
+  const rows = Math.ceil(report.summary.length / columns);
+  return startY - 18 - rows * 43;
 }
 
-function drawTableChunk(doc: any, report: ReportDocument, columns: ReportColumn[], chunkIndex: number, chunks: number) {
-  ensureSpace(doc, report, 50);
-  if (chunks > 1) doc.font("Helvetica-Bold").fontSize(8).text(`Detalle · bloque ${chunkIndex + 1} de ${chunks}`);
-  const pageWidth = doc.page.width - 72;
-  const cellWidth = pageWidth / Math.max(1, columns.length);
-  const headerHeight = 28;
-  const drawHeader = () => {
-    const y = doc.y;
-    columns.forEach((column, index) => {
-      const x = 36 + index * cellWidth;
-      doc.rect(x, y, cellWidth, headerHeight).fillAndStroke("#e2e8f0", "#94a3b8");
-      doc.fillColor("#0f172a").font("Helvetica-Bold").fontSize(6).text(column.label, x + 3, y + 5, { width: cellWidth - 6, height: headerHeight - 8, ellipsis: true });
-    });
-    doc.y = y + headerHeight;
-  };
-  drawHeader();
-  for (const row of report.rows) {
-    const values = columns.map((column) => formatValue(row[column.key], column.type, report.context.currency_code));
-    const rowHeight = Math.max(18, ...values.map((value) => Math.min(44, doc.heightOfString(value, { width: cellWidth - 6 })) + 7));
-    if (doc.y + rowHeight > doc.page.height - 42) {
-      doc.addPage();
-      drawPageHeader(doc, report, true);
-      drawHeader();
-    }
-    const y = doc.y;
-    values.forEach((value, index) => {
-      const x = 36 + index * cellWidth;
-      doc.rect(x, y, cellWidth, rowHeight).strokeColor("#cbd5e1").stroke();
-      doc.fillColor("#1e293b").font("Helvetica").fontSize(6).text(value, x + 3, y + 4, { width: cellWidth - 6, height: rowHeight - 7, ellipsis: true });
-    });
-    doc.y = y + rowHeight;
-  }
-  if (!report.rows.length) {
-    doc.font("Helvetica-Oblique").fontSize(8).text("No existen registros para los filtros seleccionados.", 36, doc.y + 8);
-    doc.moveDown(2);
-  }
-  doc.moveDown(0.8);
+function drawTableHeader(page: PDFPage, columns: ReportColumn[], y: number, normal: PDFFont, bold: PDFFont) {
+  const width = A4_LANDSCAPE[0] - MARGIN * 2;
+  const cellWidth = width / Math.max(1, columns.length);
+  const height = 26;
+  columns.forEach((column, index) => {
+    const x = MARGIN + index * cellWidth;
+    page.drawRectangle({ x, y: y - height, width: cellWidth, height, borderWidth: 0.55, borderColor: rgb(0.58, 0.64, 0.71), color: rgb(0.89, 0.92, 0.95) });
+    drawLines(page, wrapText(column.label, bold, 6, cellWidth - 6, 2), x + 3, y - 8, cellWidth - 6, bold, 6, rgb(0.05, 0.09, 0.16));
+  });
+  return { y: y - height, cellWidth };
+}
+
+function drawTableRow(page: PDFPage, columns: ReportColumn[], row: Record<string, unknown>, y: number, cellWidth: number, normal: PDFFont, report: ReportDocument) {
+  const size = 5.8;
+  const values = columns.map((column) => wrapText(formatValue(row[column.key], column.type, report.context.currency_code), normal, size, cellWidth - 6, 3));
+  const maxLines = Math.max(1, ...values.map((lines) => lines.length));
+  const height = Math.max(17, 7 + maxLines * (size + 2));
+  values.forEach((lines, index) => {
+    const x = MARGIN + index * cellWidth;
+    page.drawRectangle({ x, y: y - height, width: cellWidth, height, borderWidth: 0.35, borderColor: rgb(0.79, 0.83, 0.87) });
+    drawLines(page, lines, x + 3, y - 8, cellWidth - 6, normal, size, rgb(0.12, 0.16, 0.23));
+  });
+  return y - height;
 }
 
 export async function buildReportPdf(report: ReportDocument): Promise<Buffer> {
-  const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 36, info: { Title: report.title, Author: "PresuControl Empresarial", Subject: report.subtitle } });
-  const chunks: Buffer[] = [];
-  doc.on("data", (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
-  const finished = new Promise<Buffer>((resolve, reject) => {
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-  });
-  drawPageHeader(doc, report);
-  drawSummary(doc, report);
+  const pdf = await PDFDocument.create();
+  pdf.setTitle(report.title);
+  pdf.setSubject(report.subtitle);
+  pdf.setAuthor("PresuControl Empresarial");
+  pdf.setCreator("PresuControl Empresarial");
+  pdf.setCreationDate(new Date(report.generated_at));
+  const normal = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  let state = addPage(pdf, report, normal, bold);
+  state.y = drawSummary(state.page, report, normal, bold, state.y);
   const columnChunks: ReportColumn[][] = [];
   for (let index = 0; index < report.columns.length; index += 7) columnChunks.push(report.columns.slice(index, index + 7));
-  columnChunks.forEach((columns, index) => {
-    if (index > 0) {
-      doc.addPage();
-      drawPageHeader(doc, report, true);
+  if (!columnChunks.length) columnChunks.push([]);
+
+  columnChunks.forEach((columns, chunkIndex) => {
+    if (chunkIndex > 0) state = addPage(pdf, report, normal, bold, true);
+    if (columnChunks.length > 1) {
+      state.page.drawText(`Detalle · bloque ${chunkIndex + 1} de ${columnChunks.length}`, { x: MARGIN, y: state.y, size: 8, font: bold, color: rgb(0.05, 0.09, 0.16) });
+      state.y -= 12;
     }
-    drawTableChunk(doc, report, columns, index, columnChunks.length);
+    if (!columns.length) return;
+    let header = drawTableHeader(state.page, columns, state.y, normal, bold);
+    state.y = header.y;
+    if (!report.rows.length) {
+      state.page.drawText("No existen registros para los filtros seleccionados.", { x: MARGIN, y: state.y - 14, size: 8, font: normal, color: rgb(0.35, 0.4, 0.48) });
+      state.y -= 25;
+      return;
+    }
+    report.rows.forEach((row) => {
+      const testValues = columns.map((column) => wrapText(formatValue(row[column.key], column.type, report.context.currency_code), normal, 5.8, header.cellWidth - 6, 3));
+      const rowHeight = Math.max(17, 7 + Math.max(1, ...testValues.map((lines) => lines.length)) * 7.8);
+      if (state.y - rowHeight < FOOTER_TOP + 18) {
+        state = addPage(pdf, report, normal, bold, true);
+        header = drawTableHeader(state.page, columns, state.y, normal, bold);
+        state.y = header.y;
+      }
+      state.y = drawTableRow(state.page, columns, row, state.y, header.cellWidth, normal, report);
+    });
   });
+
   if (report.notes.length) {
-    ensureSpace(doc, report, 45);
-    doc.font("Helvetica-Bold").fontSize(8).text("Notas y advertencias");
-    doc.font("Helvetica").fontSize(7);
-    report.notes.forEach((note) => doc.text(`• ${note}`, { indent: 8 }));
+    if (state.y < 72) state = addPage(pdf, report, normal, bold, true);
+    state.page.drawText("Notas y advertencias", { x: MARGIN, y: state.y - 8, size: 8, font: bold, color: rgb(0.05, 0.09, 0.16) });
+    let noteY = state.y - 20;
+    report.notes.forEach((note) => {
+      const lines = wrapText(`- ${note}`, normal, 7, A4_LANDSCAPE[0] - MARGIN * 2, 3);
+      drawLines(state.page, lines, MARGIN, noteY, A4_LANDSCAPE[0] - MARGIN * 2, normal, 7, rgb(0.29, 0.35, 0.43));
+      noteY -= lines.length * 9 + 3;
+    });
   }
-  const pages = doc.bufferedPageRange?.();
-  if (pages) {
-    for (let index = pages.start; index < pages.start + pages.count; index += 1) {
-      doc.switchToPage(index);
-      doc.font("Helvetica").fontSize(6.5).fillColor("#64748b")
-        .text(`Generado ${new Intl.DateTimeFormat("es-PE", { dateStyle: "short", timeStyle: "short" }).format(new Date(report.generated_at))} · Página ${index + 1} de ${pages.count}`, 36, doc.page.height - 25, { width: doc.page.width - 72, align: "center" });
-    }
-  }
-  doc.end();
-  return finished;
+
+  const pages = pdf.getPages();
+  pages.forEach((page, index) => {
+    const footer = `Generado ${new Intl.DateTimeFormat("es-PE", { dateStyle: "short", timeStyle: "short" }).format(new Date(report.generated_at))} · Página ${index + 1} de ${pages.length}`;
+    drawLines(page, [footer], MARGIN, 12, A4_LANDSCAPE[0] - MARGIN * 2, normal, 6.5, rgb(0.4, 0.45, 0.53), "center");
+  });
+  return Buffer.from(await pdf.save());
 }
 
 export function reportFileName(report: ReportDocument, extension: "xlsx" | "pdf") {
