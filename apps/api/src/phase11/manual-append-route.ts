@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import { DatabaseManager } from "../../../../packages/database/src/index";
 import { httpError } from "../phase3/common";
 import { importMasterData, type MasterDataImportInput, type MasterDataRowInput } from "./master-data";
+import { suggestPhase11Proposals } from "./proposals";
 
 const headerAliases: Record<string, string[]> = {
   center_code: ["center_code","centro_codigo","codigo_centro","codigo_del_centro","centro"],
@@ -20,8 +21,7 @@ const headerAliases: Record<string, string[]> = {
   cost_traceability: ["cost_traceability","trazabilidad_costo","trazabilidad_del_costo","costo_directo_indirecto"],
   quantity: ["quantity","cantidad"], unit_price: ["unit_price","precio_unitario","costo_unitario"],
   amount: ["amount","importe","monto","valor","total"],
-  source_reference: ["source_reference","fuente","referencia","fuente_o_referencia"],
-  notes: ["notes","observaciones","nota"],
+  source_reference: ["source_reference","fuente","referencia","fuente_o_referencia"], notes: ["notes","observaciones","nota"],
 };
 
 function normalize(value: unknown) {
@@ -94,8 +94,7 @@ async function inspectWorkbook(input: { file_name: string; content_base64: strin
   }
   return {
     file_name: input.file_name, sheet_name: sheet.name,
-    sheets: workbook.worksheets.map((item) => ({ name: item.name, row_count: item.rowCount })),
-    header_row: headerRow, rows,
+    sheets: workbook.worksheets.map((item) => ({ name: item.name, row_count: item.rowCount })), header_row: headerRow, rows,
     summary: { rows_read: rows.length, rows_valid: rows.filter((row) => (row.warnings as string[]).length === 0).length, rows_observed: rows.filter((row) => (row.warnings as string[]).length > 0).length },
   };
 }
@@ -105,12 +104,22 @@ export function registerPhase11ManualAppendRoute(app: Express, database: Databas
     try { response.json(await inspectWorkbook(request.body)); } catch (error) { next(error); }
   });
 
+  app.post("/api/phase11/proposals/suggestions", (request: Request, response: Response, next) => {
+    try {
+      const suggestions = suggestPhase11Proposals(database, request.body).map((suggestion) => {
+        if (!suggestion.center_id) return suggestion;
+        const center = database.connection.prepare("SELECT responsible_id FROM activity_centers WHERE id=? AND company_id=?")
+          .get(suggestion.center_id, suggestion.company_id) as { responsible_id: number } | undefined;
+        return center ? { ...suggestion, responsible_id: center.responsible_id } : suggestion;
+      });
+      response.json(suggestions);
+    } catch (error) { next(error); }
+  });
+
   app.post("/api/phase11/master-data/import", (request: Request, response: Response, next) => {
     const input = request.body as Partial<MasterDataImportInput>;
     const isManualAppend = !input.source_file && input.replace_existing !== true && Array.isArray(input.rows) && input.rows.length === 1;
-    if (!isManualAppend || !input.company_id || !input.exercise_id || !input.period_id || !input.version_id || !input.budget_type_id || !input.data_kind) {
-      next(); return;
-    }
+    if (!isManualAppend || !input.company_id || !input.exercise_id || !input.period_id || !input.version_id || !input.budget_type_id || !input.data_kind) { next(); return; }
     const dataset = database.connection.prepare(`SELECT id FROM master_data_sets
       WHERE company_id=? AND exercise_id=? AND period_id=? AND version_id=? AND budget_type_id=? AND data_kind=?`)
       .get(input.company_id, input.exercise_id, input.period_id, input.version_id, input.budget_type_id, input.data_kind) as { id: number } | undefined;
