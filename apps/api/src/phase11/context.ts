@@ -10,6 +10,10 @@ export interface Phase11ContextInput {
   budget_type_id: number;
 }
 
+export type PartialPhase11Context = {
+  [Key in keyof Phase11ContextInput]?: number | null;
+};
+
 export function ensurePhase11Context(database: DatabaseManager, input: Phase11ContextInput) {
   const company = database.connection.prepare("SELECT * FROM companies WHERE id=? AND active=1").get(input.company_id) as Record<string, unknown> | undefined;
   if (!company) httpError("Seleccione una empresa activa.", 400);
@@ -32,7 +36,7 @@ export function ensurePhase11Context(database: DatabaseManager, input: Phase11Co
   return { company, exercise, period, version, budgetType };
 }
 
-export function workflowStatus(database: DatabaseManager, partial: Partial<Phase11ContextInput>) {
+export function workflowStatus(database: DatabaseManager, partial: PartialPhase11Context) {
   const companyReady = Boolean(partial.company_id && database.connection.prepare("SELECT id FROM companies WHERE id=? AND active=1").get(partial.company_id));
   const exerciseReady = Boolean(companyReady && partial.exercise_id && database.connection.prepare("SELECT id FROM budget_exercises WHERE id=? AND company_id=? AND active=1").get(partial.exercise_id, partial.company_id));
   const periodReady = Boolean(exerciseReady && partial.period_id && database.connection.prepare("SELECT id FROM budget_periods WHERE id=? AND company_id=? AND exercise_id=?").get(partial.period_id, partial.company_id, partial.exercise_id));
