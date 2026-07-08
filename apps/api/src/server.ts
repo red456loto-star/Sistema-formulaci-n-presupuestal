@@ -33,6 +33,7 @@ import { registerPhase9Routes } from "./phase9/routes";
 import { ensurePhase10Schema } from "./phase10/schema";
 import { registerPhase10Routes } from "./phase10/routes";
 import { ensurePhase11Schema } from "./phase11/schema";
+import { registerPhase11ManualAppendRoute } from "./phase11/manual-append-route";
 import { registerPhase11Routes } from "./phase11/routes";
 
 export interface StartServerOptions { port?: number; host?: string; dataDir?: string; }
@@ -125,6 +126,7 @@ export function createApp(options: StartServerOptions = {}) {
   registerFinancialAnalysisRoutes(app, database);
   registerPhase9Routes(app, database);
   registerPhase10Routes(app, database);
+  registerPhase11ManualAppendRoute(app, database);
   registerPhase11Routes(app, database);
 
   app.get("/api/system/database-status", (_request, response) => response.json(database.getStatus()));
