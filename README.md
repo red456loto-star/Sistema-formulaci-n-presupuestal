@@ -2,14 +2,9 @@
 
 Aplicación de escritorio local para formulación, control y evaluación presupuestal empresarial.
 
-## Estado
+## Estado actual
 
-- **Fase 0:** análisis funcional y arquitectura.
-- **Fase 1:** base técnica React, TypeScript, Node.js, SQLite y Electron.
-- **Fase 2 corregida:** empresas, responsables, centros y estructura presupuestal.
-- **Fase 3:** ejercicios, periodos y versiones original/forecast.
-- **Fases 4–10:** importación, presupuesto maestro, información real, forecast, análisis, dashboard, reportes, correo y propuestas.
-- **Fase 11:** corrección de jerarquía, tipos de presupuesto, tablas maestras únicas por contexto y análisis automáticos.
+El sistema trabaja con un flujo jerárquico obligatorio y sin login. Primero se define la empresa, luego el periodo y la versión, después el tipo de presupuesto, posteriormente se cargan las tablas maestras y recién desde esa fuente se habilitan el presupuesto maestro, los análisis, el dashboard, las propuestas y el correo.
 
 ## Acceso
 
@@ -25,14 +20,24 @@ El menú está organizado en este orden:
 2. Periodos y versiones.
 3. Tipos de presupuesto.
 4. Tablas maestras.
-5. Análisis financiero integral.
-6. Relevancia de costos.
-7. Análisis de variaciones.
-8. Dashboard de presupuestos.
-9. Propuestas de mejora.
-10. Envío por correo.
+5. Presupuesto maestro.
+6. Análisis financiero integral.
+7. Relevancia de costos.
+8. Análisis de variaciones.
+9. Dashboard de presupuestos.
+10. Propuestas de mejora.
+11. Envío por correo.
 
 Las opciones posteriores permanecen bloqueadas hasta completar las anteriores. Variaciones y dashboard se calculan directamente desde las tablas maestras y no dependen de visitar previamente otras pantallas de análisis.
+
+## Tipos de presupuesto
+
+Los tipos de presupuesto representan la modalidad de trabajo:
+
+- Presupuesto original anual y proyección a 3 años.
+- Presupuesto revisado forecast.
+
+Los componentes como ventas, inventarios, compras, producción, costos, gastos, inversión y estados financieros no se registran en esta opción. Esos componentes se visualizan en Presupuesto maestro luego de subir la información.
 
 ## Tablas maestras
 
@@ -49,6 +54,20 @@ El origen puede ser presupuestado o real. El usuario puede:
 - Editar partidas registradas.
 - Eliminar filas o conjuntos completos.
 - Registrar fuente, operador y WACC.
+
+## Presupuesto maestro
+
+Después de subir la información presupuestada, el sistema muestra una vista integrada con:
+
+- Presupuesto de ventas.
+- Presupuesto de inventarios.
+- Presupuesto de compras.
+- Presupuesto de producción.
+- Presupuesto de costos por centro de actividad productivo.
+- Presupuesto de gastos por centro de actividad.
+- Presupuesto de inversión.
+- Estado de situación financiera presupuestado.
+- Estado de resultados presupuestado.
 
 ## Análisis automático
 
@@ -72,7 +91,7 @@ Las propuestas utilizan evidencia cuantitativa de las tablas maestras y registra
 
 El envío por correo utiliza el presupuesto aprobado del centro registrado en las tablas maestras. El PDF se genera localmente antes del intento; si no existe internet, queda pendiente para reintento. La contraseña SMTP no se almacena.
 
-La documentación detallada está en `README_FASE_11.md`.
+La documentación detallada está en `README_CORRECCIONES.md`.
 
 ## Verificación
 
