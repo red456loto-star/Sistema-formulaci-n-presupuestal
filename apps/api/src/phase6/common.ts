@@ -5,8 +5,8 @@ export interface MasterContext {
   companyId: number;
   exerciseId: number;
   versionId: number;
-  version: Record<string, unknown>;
-  exercise: Record<string, unknown>;
+  version?: Record<string, unknown>;
+  exercise?: Record<string, unknown>;
 }
 
 export function numericId(value: unknown, label: string) {
