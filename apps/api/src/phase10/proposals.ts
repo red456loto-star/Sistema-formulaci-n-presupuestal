@@ -34,10 +34,8 @@ function getRecord(database: DatabaseManager, table: string, id: number, company
 }
 
 function ensureProposalContext(database: DatabaseManager, input: ProposalInput) {
-  if (!getRecord(database, "companies", input.company_id, input.company_id)) {
-    const company = database.connection.prepare("SELECT * FROM companies WHERE id=?").get(input.company_id);
-    if (!company) httpError("La empresa seleccionada no existe.", 400);
-  }
+  const company = database.connection.prepare("SELECT * FROM companies WHERE id=? AND active=1").get(input.company_id);
+  if (!company) httpError("La empresa seleccionada no existe o está inactiva.", 400);
   const exercise = database.connection.prepare("SELECT * FROM budget_exercises WHERE id=? AND company_id=?").get(input.exercise_id, input.company_id) as Record<string, unknown> | undefined;
   if (!exercise) httpError("El ejercicio no pertenece a la empresa seleccionada.", 400);
   const version = database.connection.prepare("SELECT * FROM budget_versions WHERE id=? AND company_id=? AND exercise_id=?")
