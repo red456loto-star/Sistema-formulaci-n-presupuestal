@@ -58,11 +58,13 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npx electron-builder --win portable --x64
 
-      - name: Upload Windows artifact
+      - name: Upload complete Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PresuControl-Empresarial-Windows
-          path: release/PresuControl-Empresarial-*-x64.exe
+          name: PresuControl-Empresarial-Windows-Completo
+          path: |
+            release/PresuControl-Empresarial-*-x64.exe
+            release/win-unpacked/**
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
